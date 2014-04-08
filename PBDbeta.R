@@ -37,6 +37,11 @@ if (comm.rank()==0){ # only read on process 0
 #Just get the species data, starts on column 33 for this example
   siteXspp<-siteXspp[,33:ncol(siteXspp)]
   
+#Remove lines with less than 2 species
+  richness<-apply(siteXspp,1,sum)
+  keep<-which(richness > 2)
+  siteXspp<-siteXspp[keep,]
+  
   #Get entire species list
   splist<-colnames(siteXspp)
   

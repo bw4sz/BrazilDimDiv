@@ -15,6 +15,8 @@ Getsplist<-function(commID){
 
 beta_all<-function(comm,tree,traits){
   
+  if(sum(comm)==0){return(NA)}
+  
   #####################################
   ##Taxonomic Betadiversity
   d<-as.matrix(vegdist(comm,binary=TRUE,upper=FALSE,diag=FALSE))
@@ -110,31 +112,36 @@ betaPar<-function(comm){
 #Create all pairwise combinations of siteXspp
 z<-expand.grid(1:nrow(comm),1:nrow(comm))
 
+#WE could make a unique key on the outside, but this is very expensive, we will make a unique key on the inside of the for loop
 #make a unique key
 z$key <- apply(z, 1, function(x)paste(sort(x), collapse=''))
-
+  
 #get rid of duplicates
 expandd<-subset(z, !duplicated(z$key))
 
+#name columns
 colnames(expandd)<-c("To","From","Key")
 
 #get rid of diagonal
 expandd<-expandd[!expandd$To==expandd$From,1:2]
 
-#split rows into indices.
-IndexFunction<-splitIndices(nrow(expandd),2)
+#split rows into indices, we want each loop to take about an hour, 
+#THe function is initially timed at 20 seconds, 
+IndexFunction<-splitIndices(nrow(expandd),5)
 
 ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
 Index_Space<-expandd[IndexFunction[[1]],]
 
 #for each combination
 
-for (x in 1:nrow(IndexSpace)){
+holder<-matrix(nrow=nrow(Index_Space),ncol=5)
+
+for (x in 1:nrow(Index_Space)){
  index_row<-Index_Space[x,] 
 
  #get the comm row
  comm.d<-comm[c(index_row$To,index_row$From),]
  
- out<-beta_all(comm.d,tree=tree,traits=traits)
- return(out)
+ system.time(out<-beta_all(comm.d,tree=tree,traits=traits))
+ holder[x,]<-out
 }
