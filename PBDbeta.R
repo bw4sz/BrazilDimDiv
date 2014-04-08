@@ -13,6 +13,7 @@ require(scales)
 require(raster)
 require(boot)
 require(pbdMPI)
+require(parallel)
 
 init()
 
@@ -31,26 +32,38 @@ if (comm.rank()==0){ # only read on process 0
   ################
   
   #Read in species matrix
-  siteXspp <- read.csv(paste(droppath,"Dimensions/Data/Brazil/Mammal Distribution/BrazilSiteXSpp_longlat.csv",sep=""))
+  siteXspp <- read.csv(paste(droppath,"Dimensions/Data/Brazil/BenH/ninexdat.csv",sep=""))
+  
+#Just get the species data, starts on column 33 for this example
+  siteXspp<-siteXspp[,33:ncol(siteXspp)]
   
   #Get entire species list
   splist<-colnames(siteXspp)
   
   #Read in phylogeny
-  tree<-read.tree(paste(droppath,"Dimensions/Data/Brazil/New_Mammal_Timetree_IUCN_2Feb2013.nwk",sep=""))
+  tree<-read.tree(paste(droppath,"Dimensions/Data/Brazil/BenH/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk",sep=""))
   
   #bring in traits
-  mon <- read.csv("")
+  traits.o <- read.table(paste(droppath,"Dimensions/Data/Brazil/BenH/All_Mammal_Data-9-6-13.txt",sep=""),header=TRUE)
+  
+  #Which traits do we want, just body mass and range size for now.
+  traits<-traits.o[,colnames(traits.o) %in% c("logBodyMass","logAllGeogRange")]
+  
+  rownames(traits)<-traits.o$IUCN.binomial
+  
+  #just get a complete dataset
+  traits<-traits[complete.cases(traits),]
+  
+  dim(traits)
   
   #Broadcast to all other nodes, can this be run in one command?
   bcast(siteXspp)
   bcast(tree)
   bcast(splist)
+  
 } else {
   x<-NULL
 }
-
-
 
 #sink output for overnight runs so we can see it tomorrow
 #sink("")
@@ -60,7 +73,7 @@ if (comm.rank()==0){ # only read on process 0
 ###########################
 
 #make sure to match the tip labels and the siteXspp matrix
-table(tree$tiplabels %in% colnames(siteXspp))
+table(tree$tip.label %in% colnames(siteXspp))
 
 #list loaded packages
 (.packages())
@@ -79,18 +92,10 @@ comm<-siteXspp[1:5,]
 
 dim(comm)
 
-ls()
-
 
 #Create index
 
-
 #Get the portion of the data for that rank
-
-
-######################################################
-#Create a function for computing betadiversity metrics
-######################################################
 
 #####################################################
 #Compute Betadiversity
@@ -109,12 +114,6 @@ beta_metrics<-beta_metrics[,colnames(beta_metrics) %in% c("To","From","MNTD","Ph
 #####################################################
 data.merge<-merge(compare.env,beta_metrics,by=c("To","From"))
 
-###
-#End Part 1
-###
-
-#Begin Part 2
-load("/home1/02443/bw4sz/DimDiv/DimDivRevisionCluster.RData")
 #################################################################################
 #Richness of the assemblages
 richness_sites<-apply(siteXspp,1,sum)
@@ -126,8 +125,6 @@ sp.list<-apply(siteXspp,1,function(x){
 
 #Legacy correction, data.merge is data.df, sorry
 data.df<-data.merge
-
-setwd("/home1/02443/bw4sz/")
 
 #Write to file
 write.csv(data.df,paste(droppath,"FinalData.csv",sep=""))
