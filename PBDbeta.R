@@ -15,7 +15,6 @@ require(ggplot2)
 require(stringr)
 require(scales)
 require(raster)
-require(boot)
 require(parallel)
 
 #Everyone say hello
@@ -26,14 +25,12 @@ comm.print(comm.rank(), all.rank = TRUE)
 #Set dropbox path
 droppath<-"C:/Users/Ben/Dropbox/"
 
-
-#if running on the cluster
-
 #Set git path
 gitpath<-"C:/Users/Ben/Documents/BrazilDimDiv/"
 
+  
 #Set dropbox path
-droppath<-"C:/Users/Ben/Dropbox/"
+droppath<-"/home1/02443/bw4sz/DimDiv/"
 
 #Set git path
 gitpath<-"C:/Users/Ben/Documents/BrazilDimDiv/"
