@@ -62,9 +62,9 @@ if (comm.rank()==0){ # only read on process 0
   dim(traits)
   
   #Broadcast to all other nodes, can this be run in one command?
-  bcast(siteXspp)
-  bcast(tree)
-  bcast(splist)
+  #Option 1, pack them into a list and unlist them on each node
+  dataExport<-list(siteXspp,tree,splist,traits)
+  bcast(dataExport)
   
 } else {
   x<-NULL
@@ -74,16 +74,19 @@ if (comm.rank()==0){ # only read on process 0
 #sink("")
 
 ###########################
-###############Read in data
+###############Read in data on the node
 ###########################
+
+siteXspp<-dataExport[[1]]
+tree<-dataExport[[2]]
+splist<-dataExport[[3]]
+splist<-dataExport[[4]]
 
 #make sure to match the tip labels and the siteXspp matrix
 table(tree$tip.label %in% colnames(siteXspp))
 
 #list loaded packages
 (.packages())
-
-#load(paste(droppath,"EnvCompare.RData",sep=""))
 
 ###Define Source Functions
 source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))

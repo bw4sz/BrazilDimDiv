@@ -107,41 +107,46 @@ MNND <- function(A,B,sp.list,dists)
 
 #Function to take in a apir of
 
-betaPar<-function(comm){
+betaPar<-function(comm,rank,chunks){
   
-#Create all pairwise combinations of siteXspp
-z<-expand.grid(1:nrow(comm),1:nrow(comm))
-
-#WE could make a unique key on the outside, but this is very expensive, we will make a unique key on the inside of the for loop
-#make a unique key
-z$key <- apply(z, 1, function(x)paste(sort(x), collapse=''))
+  #Create all pairwise combinations of siteXspp
+  z<-expand.grid(1:nrow(comm),1:nrow(comm))
   
-#get rid of duplicates
-expandd<-subset(z, !duplicated(z$key))
-
-#name columns
-colnames(expandd)<-c("To","From","Key")
-
-#get rid of diagonal
-expandd<-expandd[!expandd$To==expandd$From,1:2]
-
-#split rows into indices, we want each loop to take about an hour, 
-#THe function is initially timed at 20 seconds, 
-IndexFunction<-splitIndices(nrow(expandd),5)
-
-###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
-Index_Space<-expandd[IndexFunction[[1]],]
-
-#for each combination
-
-holder<-matrix(nrow=nrow(Index_Space),ncol=5)
-
-for (x in 1:nrow(Index_Space)){
- index_row<-Index_Space[x,] 
-
- #get the comm row
- comm.d<-comm[c(index_row$To,index_row$From),]
- 
- system.time(out<-beta_all(comm.d,tree=tree,traits=traits))
- holder[x,]<-out
-}
+  #WE could make a unique key on the outside, but this is very expensive, we will make a unique key on the inside of the for loop
+  #make a unique key
+  z$key <- apply(z, 1, function(x)paste(sort(x), collapse=''))
+  
+  #get rid of duplicates
+  expandd<-subset(z, !duplicated(z$key))
+  
+  #name columns
+  colnames(expandd)<-c("To","From","Key")
+  
+  #get rid of diagonal
+  expandd<-expandd[!expandd$To==expandd$From,1:2]
+  
+  #split rows into indices, we want each loop to take about an hour, 
+  #THe function is initially timed at 20 seconds, 
+  IndexFunction<-splitIndices(nrow(expandd),chunks)
+  
+  ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
+  Index_Space<-expandd[IndexFunction[[rank]],]
+  
+#Create an output to hold function container
+  holder<-matrix(nrow=nrow(Index_Space),ncol=5)
+  
+  #Within a chunk, loop through the indexes and compute betadiversity
+  for (x in 1:nrow(Index_Space)){
+    
+    #Grab the correct index
+    index_row<-Index_Space[x,] 
+    
+    #get the comm row
+    comm.d<-comm[c(index_row$To,index_row$From),]
+    
+    #compute beta metrics
+    out<-beta_all(comm.d,tree=tree,traits=traits)
+    holder[x,]<-as.matrix(out)
+  }
+  
+  return(holder)}
