@@ -1,17 +1,30 @@
-#Source functions for DimDiv
+#Source functions for Global mammal diversity metrics
 
+##Append a position to a list
 lappend <- function(lst, obj) {
   lst[[length(lst)+1]] <- obj
   return(lst)
 }
 
-#define a helpful function get species list commid MUST be in quotes!
+
+##Get species list from cell number
+#This helpful function get species list, but make sure commid is in ""
+
 
 Getsplist<-function(commID){
   names(siteXspp[commID,which(siteXspp[commID,]==1)])
 }
 
+###############################
 #Define Betadiversity function
+###############################
+
+#This is the workhorse function and could be split into parts
+#The code computes phylogenetic (Phylosor), taxonomic (Sorenson) and trait betadiveristy (MNTD)
+#for all sites entered into the list
+#results are bound into a dataframe
+
+#A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
 beta_all<-function(comm,tree,traits){
   
@@ -30,6 +43,12 @@ beta_all<-function(comm,tree,traits){
   Phylosor.phylo<-melt(phylo.matrix)
   colnames(Phylosor.phylo)<-c("To","From","Phylosor.Phylo")
   Phylosor.phylo$Phylosor.Phylo<-1-Phylosor.phylo$Phylosor.Phylo
+  
+  ###Phylosor is really slow from the PD function, try ben holt's betasim
+  #I broke this into seperate functions since it doesn't need to happen on each cell
+  
+  #Compute cell matrix
+  #pmatSum<-matpsim(tcellbr)
   
   #Trait frame needs to match siteXSpp table
   mon_cut<-traits[rownames(traits) %in% colnames(comm),]
@@ -105,44 +124,32 @@ MNND <- function(A,B,sp.list,dists)
   res
 }
 
-#Function to take in a apir of
+#betaPar function takes in the siteXspp argument (comm), the rank of the node (rank), and 
+#the chunks for which to split indices. The function finds all pairwise comparisons of an index (slow)
+#breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
 
 betaPar<-function(comm,rank,chunks){
-  
   #Create all pairwise combinations of siteXspp
-  z<-expand.grid(1:nrow(comm),1:nrow(comm))
-  
-  #WE could make a unique key on the outside, but this is very expensive, we will make a unique key on the inside of the for loop
-  #make a unique key
-  z$key <- apply(z, 1, function(x)paste(sort(x), collapse=''))
-  
-  #get rid of duplicates
-  expandd<-subset(z, !duplicated(z$key))
-  
-  #name columns
-  colnames(expandd)<-c("To","From","Key")
-  
-  #get rid of diagonal
-  expandd<-expandd[!expandd$To==expandd$From,1:2]
-  
+  z<-combn(nrow(comm),2)
+    
   #split rows into indices, we want each loop to take about an hour, 
   #THe function is initially timed at 20 seconds, 
-  IndexFunction<-splitIndices(nrow(expandd),chunks)
+  IndexFunction<-splitIndices(ncol(z),chunks)
   
   ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
-  Index_Space<-expandd[IndexFunction[[rank]],]
+  Index_Space<-z[,IndexFunction[[rank]]]
   
-#Create an output to hold function container
-  holder<-matrix(nrow=nrow(Index_Space),ncol=5)
+#Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
+  holder<-matrix(nrow=ncol(Index_Space),ncol=5)
   
   #Within a chunk, loop through the indexes and compute betadiversity
-  for (x in 1:nrow(Index_Space)){
+  for (x in 1:ncol(Index_Space)){
     
     #Grab the correct index
-    index_row<-Index_Space[x,] 
+    index_col<-Index_Space[,x] 
     
     #get the comm row
-    comm.d<-comm[c(index_row$To,index_row$From),]
+    comm.d<-comm[c(index_col[[1]],index_col[[2]]),]
     
     #compute beta metrics
     out<-beta_all(comm.d,tree=tree,traits=traits)
@@ -150,3 +157,121 @@ betaPar<-function(comm,rank,chunks){
   }
   
   return(holder)}
+
+
+##Ben Holt's matrix phylo betadiversity function, let's break this into pieces, so its not-redundant on each call
+
+psimbranches<-function(phylo,com){
+  require(phylobase)  # detail information for all phylo branches
+  new <- phylo4(phyl)
+  dat <- as.data.frame(print(new))
+  allbr <- dat$edge.length
+  names(allbr) <- getEdge(new)
+  spp <- colnames(com)
+  
+  # create a list of phy branches for each species
+  brs <-  foreach(i = spp, .packages = "phylobase") %do% #this loop makes a list of branches for each species
+{  
+  print(which(spp == i)/length(spp))
+  print(date())
+  brsp <- vector()
+  br   <- as.numeric(rownames(dat[which(dat$label==i),]))
+  repeat{
+    brsn <- getEdge(new,br)
+    brsl <- dat[names(brsn),"edge.length"]
+    names(brsl) <- brsn
+    brsp <- c(brsp, brsl)
+    br   <- dat[br,3]
+    if(br == 0) {break}
+  }
+  
+  brsp
+}
+  names(brs) <- spp
+  
+  print("brs")
+
+  # create a species by phy branch matrix
+  
+  spp_br <- matrix(0,nrow = length(spp), ncol = length(allbr))
+  rownames(spp_br) <- spp
+  colnames(spp_br) <- names(allbr)
+  
+  for(i in spp)
+  {
+    spp_br[i,names(brs[[i]])] <- brs[[i]]
+  }
+  
+  spp_br <- spp_br[,-(ncol(com)+1)] # removes root
+  spp_br <- spp_br[,!colSums(spp_br) %in% c(0,nrow(spp_br))]  # here take out all common branches instead
+  
+  print("spp_br")
+  
+  spp_br <<- spp_br
+  
+  tcellbr <- foreach(j = rownames(com), .combine = "rbind") %do% {
+    cellbr(j,spp_br,com)
+  }
+  
+  #name columns
+  rownames(tcellbr) <- rownames(com)
+  tcellbr <<- tcellbr
+  
+  print("cell_br")
+  return(tcellbr)
+}
+
+#create a species by phy branch matrix, broken out from original function
+
+matpsim <- function(tcellbr) # make sure nodes are labelled and that com and phyl species match
+{
+    
+  # calculate full cell by cell phylobsim matrix
+  
+  psim <- foreach(j = rownames(tcellbr)) %do% {
+    print(j);cell_a <- j; 
+    unlist(
+      lapply(rownames(tcellbr)[1:(which(rownames(tcellbr) == j))], 
+        nmatsim
+      )
+    )
+  }
+  
+  print("psim")
+  psim <- do.call("rbind", psim)
+  rownames(psim) <- rownames(tcellbr)
+  colnames(psim) <- rownames(tcellbr)    
+  psim[upper.tri(psim)] <- psim[lower.tri(psim)]
+  psim <- as.dist(psim)
+  print("its over")
+  return(psim)
+}
+
+#calculate phylosim between cells, broken out from original function
+
+nmatsim <- function(cell_b) # samp = grid cell of interest
+{
+  a_br  <- tcellbr[cell_a,]
+  b_br <- tcellbr[cell_b,]
+  s_br <- rbind(a_br,b_br)
+  s_br <- as.matrix(s_br[,colSums(s_br) >0])
+  pa_br <- s_br > 0
+  both <- s_br[1,colSums(pa_br > 0)==2]
+  ubr <- s_br[,colSums(pa_br > 0)==1]
+  a_ubr <- as.matrix(ubr)[1,]
+  b_ubr <- as.matrix(ubr)[2,]
+  psim <- 1 - (sum(both,na.rm=T)/(min(sum(a_ubr,na.rm=T),sum(b_ubr,na.rm=T))+sum(both,na.rm=T)))
+  return(psim)
+}
+
+
+# function to give the pres/abs of phy branches withi cell i, broken out from original function
+cellbr <- function(i,spp_br, com)
+{
+  i_spp <- rownames(spp_br)[com[i,]>0]
+  if(length(i_spp) > 1)
+  {i_br  <- as.numeric(apply(spp_br[i_spp,],2,max))}
+  else  {i_br  <- as.numeric(spp_br[i_spp,]) }
+  names(i_br) <- colnames(spp_br)
+  return(i_br)
+}

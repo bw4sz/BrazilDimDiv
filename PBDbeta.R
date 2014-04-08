@@ -16,7 +16,7 @@ require(stringr)
 require(scales)
 require(raster)
 require(parallel)
-
+require(foreach)
 #Everyone say hello
 comm.print(comm.rank(), all.rank = TRUE)
 
@@ -27,7 +27,6 @@ droppath<-"C:/Users/Ben/Dropbox/"
 
 #Set git path
 gitpath<-"C:/Users/Ben/Documents/BrazilDimDiv/"
-
   
 #Set dropbox path
 droppath<-"/home1/02443/bw4sz/DimDiv/"
@@ -43,10 +42,10 @@ if (comm.rank()==0){ # only read on process 0
   #Read in species matrix
   siteXspp <- read.csv(paste(droppath,"Dimensions/Data/Brazil/BenH/ninexdat.csv",sep=""))
   
-#Just get the species data, starts on column 33 for this example
+  #Just get the species data, starts on column 33 for this example
   siteXspp<-siteXspp[,33:ncol(siteXspp)]
   
-#Remove lines with less than 2 species
+  #Remove lines with less than 2 species
   richness<-apply(siteXspp,1,sum)
   keep<-which(richness > 2)
   siteXspp<-siteXspp[keep,]
@@ -69,10 +68,13 @@ if (comm.rank()==0){ # only read on process 0
   traits<-traits[complete.cases(traits),]
   
   dim(traits)
+
+  #compute cell by branch relationship for all cells for ben holt's function
+  br_1<-psimbranches(tree,comm)
   
   #Broadcast to all other nodes, can this be run in one command?
   #Option 1, pack them into a list and unlist them on each node
-  dataExport<-list(siteXspp,tree,splist,traits)
+  dataExport<-list(siteXspp,tree,splist,traits,br_1)
   bcast(dataExport)
   
 } else {
@@ -86,14 +88,12 @@ if (comm.rank()==0){ # only read on process 0
 ###############Read in data on the node
 ########################################
 
+#Seperate and name the objects that were broadcast from the rank 0 node.
 siteXspp<-dataExport[[1]]
 tree<-dataExport[[2]]
 splist<-dataExport[[3]]
-splist<-dataExport[[4]]
-
-#make sure to match the tip labels and the siteXspp matrix
-table(tree$tip.label %in% colnames(siteXspp))
-
+traits<-dataExport[[4]]
+br_1<-dataExport[[5]]
 #list loaded packages
 (.packages())
 
@@ -101,15 +101,12 @@ table(tree$tip.label %in% colnames(siteXspp))
 
 source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
 
-##########################################################
-#Read in data
-##########################################################
-
-#Do we want to subset the data for a test case? If so, add which rows below
-comm<-siteXspp[1:5,]
+#Do we want to subset the data for a test case? 
+#If so, add which rows below
+comm<-siteXspp[1:10,]
 
 #####################################################
-#Compute Betadiversity
+##############Compute Betadiversity##################
 #####################################################
 
 #betaPar takes in three arguments, the siteXspp matrix, the rank number of the node, and the number of chunks
@@ -119,8 +116,19 @@ comm<-siteXspp[1:5,]
 
 timeF<-system.time(beta_out<-betaPar(comm,1,2))
 
+#profile
+Rprof(tmp <- tempfile())
+beta_out<-betaPar(comm,1,2)
+Rprof(NULL)
+summaryRprof(tmp)
+unlink(tmp)
+
+require(prog)
+
+#Return timing argument to console
 print(timeF)
 
+#name columns
 colnames(beta_out)<-c("To","From","Phylosor.Phylo","MNTD","Sorenson")
 
 #Gather all to comm Rank 0 and write to file? cast into giant dataframe?
