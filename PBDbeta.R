@@ -4,6 +4,10 @@
 #Ben Gregory Weinstein, corresponding author - alll code below was writen by BGW
 #Boris A. Tinoco, Juan L. Parra, PhD, Leone M. Brown, PhD, Gary Stiles, PhD, Jim A. McGuire, PhD, Catherine H. Graham, PhD
 
+require(pbdMPI)
+
+init()
+
 require(vegan)
 require(reshape)
 require(picante)
@@ -12,13 +16,21 @@ require(stringr)
 require(scales)
 require(raster)
 require(boot)
-require(pbdMPI)
 require(parallel)
 
-init()
-
 #Everyone say hello
-comm.print(.comm.rank, all.rank = TRUE)
+comm.print(comm.rank(), all.rank = TRUE)
+
+##If running locally set droppath
+
+#Set dropbox path
+droppath<-"C:/Users/Ben/Dropbox/"
+
+
+#if running on the cluster
+
+#Set git path
+gitpath<-"C:/Users/Ben/Documents/BrazilDimDiv/"
 
 #Set dropbox path
 droppath<-"C:/Users/Ben/Dropbox/"
@@ -73,9 +85,9 @@ if (comm.rank()==0){ # only read on process 0
 #sink output for overnight runs so we can see it tomorrow
 #sink("")
 
-###########################
+########################################
 ###############Read in data on the node
-###########################
+########################################
 
 siteXspp<-dataExport[[1]]
 tree<-dataExport[[2]]
@@ -88,7 +100,8 @@ table(tree$tip.label %in% colnames(siteXspp))
 #list loaded packages
 (.packages())
 
-###Define Source Functions
+###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
+
 source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
 
 ##########################################################
@@ -98,51 +111,35 @@ source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
 #Do we want to subset the data for a test case? If so, add which rows below
 comm<-siteXspp[1:5,]
 
-dim(comm)
-
-
-#Create index
-
-#Get the portion of the data for that rank
-
 #####################################################
 #Compute Betadiversity
 #####################################################
 
-system.time(beta_metrics<-beta_all(comm=comm,tree=tree,traits=mon))
+#betaPar takes in three arguments, the siteXspp matrix, the rank number of the node, and the number of chunks
+#Until we can get on the cluster the 2nd argument will be 1 for testing
+#rank<-comm.rank
+#system.time(beta_out<-betaPar(siteXspp,rank,2))
 
-#Visualizations of the beta metrics
-head(beta_metrics)
+timeF<-system.time(beta_out<-betaPar(comm,1,2))
 
-#Get rid of the nestedness components
-beta_metrics<-beta_metrics[,colnames(beta_metrics) %in% c("To","From","MNTD","Phylosor.Phylo","Sorenson") ]
+print(timeF)
 
-#####################################################
-#Merge Betadiversity and Environmnetal Dissimilairity
-#####################################################
-data.merge<-merge(compare.env,beta_metrics,by=c("To","From"))
+colnames(beta_out)<-c("To","From","Phylosor.Phylo","MNTD","Sorenson")
 
-#################################################################################
-#Richness of the assemblages
-richness_sites<-apply(siteXspp,1,sum)
+#Gather all to comm Rank 0 and write to file? cast into giant dataframe?
 
-#Composition of each site
-sp.list<-apply(siteXspp,1,function(x){
-  names(x[which(x==1)])
-})
-
-#Legacy correction, data.merge is data.df, sorry
-data.df<-data.merge
-
-#Write to file
-write.csv(data.df,paste(droppath,"FinalData.csv",sep=""))
-
-#Or save data
-save.image(paste(droppath,"MetricsDimDiv.RData",sep=""))
+if (comm.rank()==0){ # only read on process 0
+  
+  #######Gather from all runs#########
+  beta_gather<-gather()
+  all_out<-rbind.fill.matrix(beta_gather)
+  write.csv(data.df,paste(droppath,"FinalData.csv",sep=""))
+} else {
+  x<-NULL
+}
 
 #Data Generation Complete
 ##########################################################################################
 ##########################################################################################
 
-#Depending if you are a cluster
 finalize()
