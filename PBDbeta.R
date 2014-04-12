@@ -4,6 +4,15 @@
 #Ben Gregory Weinstein, corresponding author - alll code below was writen by BGW
 #Boris A. Tinoco, Juan L. Parra, PhD, Leone M. Brown, PhD, Gary Stiles, PhD, Jim A. McGuire, PhD, Catherine H. Graham, PhD
 
+
+#############
+#Set testing flag, 
+#this subsitutes the real data for a tiny dummy example for debugging
+
+testing<-TRUE
+
+##################
+
 require(pbdMPI)
 
 init()
@@ -68,9 +77,23 @@ if (comm.rank()==0){ # only read on process 0
   traits<-traits[complete.cases(traits),]
   
   dim(traits)
-
+  
+  #Testing data
+  if(testing==TRUE)    {
+    #Dummy phylogeny, siteXspp and traits from phylocom picante package
+    data(phylocom)
+    tree<-phylocom$phylo
+    siteXspp<-phylocom$sample
+    traits<-phylocom$traits
+    print("Testing Data Loaded")
+  }
+ 
+  #################Data prep on first rank, we want to place the most time consuming steps that are not parallelizable here?
+  #Turn phylo object into a matrix
+  branch.out<-branching(tree)
+  
+  ####Data Load Complete####
   #compute cell by branch relationship for all cells for ben holt's function
-  br_1<-psimbranches(tree,comm)
   
   #Broadcast to all other nodes, can this be run in one command?
   #Option 1, pack them into a list and unlist them on each node
@@ -103,7 +126,8 @@ source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
 
 #Do we want to subset the data for a test case? 
 #If so, add which rows below
-comm<-siteXspp[1:10,]
+comm<-siteXspp[1:5,]
+
 
 #####################################################
 ##############Compute Betadiversity##################

@@ -30,6 +30,10 @@ beta_all<-function(comm,tree,traits){
   
   if(sum(comm)==0){return(NA)}
   
+  #remove all species with no records in the row
+  comm<-comm[,which(!apply(comm,2,sum)==0)]
+  
+
   #####################################
   ##Taxonomic Betadiversity
   d<-as.matrix(vegdist(comm,binary=TRUE,upper=FALSE,diag=FALSE))
@@ -47,14 +51,20 @@ beta_all<-function(comm,tree,traits){
   ###Phylosor is really slow from the PD function, try ben holt's betasim
   #I broke this into seperate functions since it doesn't need to happen on each cell
   
+  tcellbr<-psimbranches(tree,comm,branch.out)
+  
   #Compute cell matrix
-  #pmatSum<-matpsim(tcellbr)
+  pmatSum<-melt(as.matrix(matpsim(tcellbr)))
+  
+  colnames(pmatSum)<-c("To","From","BetaSim")
   
   #Trait frame needs to match siteXSpp table
   mon_cut<-traits[rownames(traits) %in% colnames(comm),]
   
-  #There are eight species without traits, take them out for just this portion of the analysis, keep the assemblage lsit
+  #species without traits, take them out for just this portion of the analysis, keep the assemblage lsit
   siteXspp_traits<-comm[,colnames(comm) %in% rownames(mon_cut)]
+  
+  #direct traits, need to be standardized
   
   #   #Zscores, standardized by sd and subtracted means
   #   means<-apply(mon_cut,2,mean)
@@ -65,11 +75,12 @@ beta_all<-function(comm,tree,traits){
   #   rownames(z.scores)<-rownames(mon_cut)
   #   newSGdist<-dist(z.scores,method="euclidean")
   #   
+  
   #If you wanted a PCA 
   prc_traits<-prcomp(mon_cut,scale=TRUE)
   newSGdist <- dist(prc_traits$x)
   
-  #create sp.list
+  #create sp.list for trait function
   sp.list<-lapply(rownames(siteXspp_traits),function(k){
     x<-siteXspp_traits[k,]
     names(x[which(x==1)])
@@ -80,6 +91,8 @@ beta_all<-function(comm,tree,traits){
   
   rownames(dists) <- rownames(mon_cut)
   colnames(dists) <- rownames(mon_cut)
+  
+  #walk through each pair of cells and compute trait betadiversity using MNNTD
   sgtraitMNTD <- sapply(rownames(siteXspp_traits),function(i){
     
     #Iterator count
@@ -94,13 +107,16 @@ beta_all<-function(comm,tree,traits){
     return(out)
   })
   
+  #name trait matrix
   names(sgtraitMNTD) <- rownames(siteXspp_traits)
   melt.MNTD<-melt(sgtraitMNTD)
   colnames(melt.MNTD)<-c("MNTD","To","From")
   
-  #Combine with other metrics
+  #Combine with other metrics into one large dataframe
+  
   Allmetrics0<-merge(Phylosor.phylo,melt.MNTD,by=c("To","From"))
-  Allmetrics<-merge(Allmetrics0,sorenson,by=c("To","From"))
+  Allmetrics1<-merge(Allmetrics0,sorenson,by=c("To","From"))
+  Allmetrics<-merge(Allmetrics1,pmatSum,by=c("To","From"))
   
   return(Allmetrics)}
 
@@ -161,19 +177,34 @@ betaPar<-function(comm,rank,chunks){
 
 ##Ben Holt's matrix phylo betadiversity function, let's break this into pieces, so its not-redundant on each call
 
-psimbranches<-function(phylo,com){
+#Function gets the edge matrix for all nodes, takes awhile
+branching<-function(phyl){
   require(phylobase)  # detail information for all phylo branches
   new <- phylo4(phyl)
   dat <- as.data.frame(print(new))
   allbr <- dat$edge.length
   names(allbr) <- getEdge(new)
+  return(list(dat,new,allbr))
+}
+
+
+#Function computes the cell by branch matrix
+
+psimbranches<-function(phyl=tree,com=comm,branch.out=branch.out){
+  
+  #unpack the output from the branching function
+  dat<-branch.out[[1]]
+  new<-branch.out[[2]]
+  allbr<-branch.out[[3]]
+  
+  #get species list
   spp <- colnames(com)
   
   # create a list of phy branches for each species
   brs <-  foreach(i = spp, .packages = "phylobase") %do% #this loop makes a list of branches for each species
 {  
-  print(which(spp == i)/length(spp))
-  print(date())
+  #print(which(spp == i)/length(spp))
+  #print(date())
   brsp <- vector()
   br   <- as.numeric(rownames(dat[which(dat$label==i),]))
   repeat{
@@ -225,7 +256,6 @@ psimbranches<-function(phylo,com){
 
 matpsim <- function(tcellbr) # make sure nodes are labelled and that com and phyl species match
 {
-    
   # calculate full cell by cell phylobsim matrix
   
   psim <- foreach(j = rownames(tcellbr)) %do% {
