@@ -10,116 +10,13 @@ lappend <- function(lst, obj) {
 ##Get species list from cell number
 #This helpful function get species list, but make sure commid is in ""
 
-
 Getsplist<-function(commID){
   names(siteXspp[commID,which(siteXspp[commID,]==1)])
 }
 
-###############################
-#Define Betadiversity function
-###############################
 
-#This is the workhorse function and could be split into parts
-#The code computes phylogenetic (Phylosor), taxonomic (Sorenson) and trait betadiveristy (MNTD)
-#for all sites entered into the list
-#results are bound into a dataframe
-
-#A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
-
-beta_all<-function(comm,tree,traits){
-  
-  if(sum(comm)==0){return(NA)}
-  
-  #remove all species with no records in the row
-  comm<-comm[,which(!apply(comm,2,sum)==0)]
-  
-
-  #####################################
-  ##Taxonomic Betadiversity
-  d<-as.matrix(vegdist(comm,binary=TRUE,upper=FALSE,diag=FALSE))
-  sorenson<-melt(d)[melt(upper.tri(d))$value,]
-  colnames(sorenson)<-c("To","From","Sorenson")
-  ######################################
-  
-  #Phylosor Calculation see Bryant 2008
-  phylo.matrix<-as.matrix(phylosor(comm,tree))
-  diag(phylo.matrix)<-NA
-  Phylosor.phylo<-melt(phylo.matrix)
-  colnames(Phylosor.phylo)<-c("To","From","Phylosor.Phylo")
-  Phylosor.phylo$Phylosor.Phylo<-1-Phylosor.phylo$Phylosor.Phylo
-  
-  ###Phylosor is really slow from the PD function, try ben holt's betasim
-  #I broke this into seperate functions since it doesn't need to happen on each cell
-  
-  tcellbr<-psimbranches(tree,comm,branch.out)
-  
-  #Compute cell matrix
-  pmatSum<-melt(as.matrix(matpsim(tcellbr)))
-  
-  colnames(pmatSum)<-c("To","From","BetaSim")
-  
-  #Trait frame needs to match siteXSpp table
-  mon_cut<-traits[rownames(traits) %in% colnames(comm),]
-  
-  #species without traits, take them out for just this portion of the analysis, keep the assemblage lsit
-  siteXspp_traits<-comm[,colnames(comm) %in% rownames(mon_cut)]
-  
-  #direct traits, need to be standardized
-  
-  #   #Zscores, standardized by sd and subtracted means
-  #   means<-apply(mon_cut,2,mean)
-  #   Bill<-mon_cut$Bill - means["Bill"]/sd(mon_cut$Bill)
-  #   Mass<-mon_cut$Mass - means["Mass"]/sd(mon_cut$Mass)
-  #   WingChord<-(mon_cut$WingChord - means["WingChord"])/sd(mon_cut$WingChord)
-  #   z.scores<-data.frame(Bill,Mass,WingChord)
-  #   rownames(z.scores)<-rownames(mon_cut)
-  #   newSGdist<-dist(z.scores,method="euclidean")
-  #   
-  
-  #If you wanted a PCA 
-  prc_traits<-prcomp(mon_cut,scale=TRUE)
-  newSGdist <- dist(prc_traits$x)
-  
-  #create sp.list for trait function
-  sp.list<-lapply(rownames(siteXspp_traits),function(k){
-    x<-siteXspp_traits[k,]
-    names(x[which(x==1)])
-  })
-  
-  names(sp.list)<-rownames(siteXspp_traits)
-  dists <- as.matrix(newSGdist)
-  
-  rownames(dists) <- rownames(mon_cut)
-  colnames(dists) <- rownames(mon_cut)
-  
-  #walk through each pair of cells and compute trait betadiversity using MNNTD
-  sgtraitMNTD <- sapply(rownames(siteXspp_traits),function(i){
-    
-    #Iterator count
-    #print(round(which(rownames(siteXspp_traits)==i)/nrow(siteXspp_traits),3))
-    
-    #set iterator
-    A<-i
-    
-    #
-    out<-lapply(rownames(siteXspp_traits)[1:(which(rownames(siteXspp_traits) == i))], function(B) {MNND(A,B,sp.list=sp.list,dists=dists)})
-    names(out)<-rownames(siteXspp_traits)[1:(which(rownames(siteXspp_traits) == i))]
-    return(out)
-  })
-  
-  #name trait matrix
-  names(sgtraitMNTD) <- rownames(siteXspp_traits)
-  melt.MNTD<-melt(sgtraitMNTD)
-  colnames(melt.MNTD)<-c("MNTD","To","From")
-  
-  #Combine with other metrics into one large dataframe
-  
-  Allmetrics0<-merge(Phylosor.phylo,melt.MNTD,by=c("To","From"))
-  Allmetrics1<-merge(Allmetrics0,sorenson,by=c("To","From"))
-  Allmetrics<-merge(Allmetrics1,pmatSum,by=c("To","From"))
-  
-  return(Allmetrics)}
-
+############Trait Betadiversity Function,
+#Computes the mean nearest neighbor
 
 MNND <- function(A,B,sp.list,dists)
 {
@@ -140,39 +37,6 @@ MNND <- function(A,B,sp.list,dists)
   res
 }
 
-#betaPar function takes in the siteXspp argument (comm), the rank of the node (rank), and 
-#the chunks for which to split indices. The function finds all pairwise comparisons of an index (slow)
-#breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
-
-betaPar<-function(comm,rank,chunks){
-  #Create all pairwise combinations of siteXspp
-  z<-combn(nrow(comm),2)
-    
-  #split rows into indices, we want each loop to take about an hour, 
-  #THe function is initially timed at 20 seconds, 
-  IndexFunction<-splitIndices(ncol(z),chunks)
-  
-  ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
-  Index_Space<-z[,IndexFunction[[rank]]]
-  
-#Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
-  holder<-matrix(nrow=ncol(Index_Space),ncol=5)
-  
-  #Within a chunk, loop through the indexes and compute betadiversity
-  for (x in 1:ncol(Index_Space)){
-    
-    #Grab the correct index
-    index_col<-Index_Space[,x] 
-    
-    #get the comm row
-    comm.d<-comm[c(index_col[[1]],index_col[[2]]),]
-    
-    #compute beta metrics
-    out<-beta_all(comm.d,tree=tree,traits=traits)
-    holder[x,]<-as.matrix(out)
-  }
-  
-  return(holder)}
 
 
 ##Ben Holt's matrix phylo betadiversity function, let's break this into pieces, so its not-redundant on each call
@@ -221,7 +85,7 @@ psimbranches<-function(phyl=tree,com=comm,branch.out=branch.out){
   names(brs) <- spp
   
   print("brs")
-
+  
   # create a species by phy branch matrix
   
   spp_br <- matrix(0,nrow = length(spp), ncol = length(allbr))
@@ -262,7 +126,7 @@ matpsim <- function(tcellbr) # make sure nodes are labelled and that com and phy
     print(j);cell_a <- j; 
     unlist(
       lapply(rownames(tcellbr)[1:(which(rownames(tcellbr) == j))], 
-        nmatsim
+             nmatsim
       )
     )
   }
@@ -305,3 +169,155 @@ cellbr <- function(i,spp_br, com)
   names(i_br) <- colnames(spp_br)
   return(i_br)
 }
+
+###############################
+#Global Betadiversity function
+###############################
+
+#This is the workhorse function and could be split into parts
+#The code computes phylogenetic (Phylosor), taxonomic (Sorenson) and trait betadiveristy (MNTD)
+#for all sites entered into the list
+#results are bound into a dataframe
+
+#A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
+
+beta_all<-function(comm,tree,traits){
+  
+  if(sum(comm)==0){return(NA)}
+  
+  #remove all species with no records in the row
+  comm<-comm[,which(!apply(comm,2,sum)==0)]
+  
+
+  #####################################
+  ##Taxonomic Betadiversity
+  
+  d<-as.matrix(vegdist(comm,binary=TRUE,upper=FALSE,diag=FALSE))
+  sorenson<-melt(d)[melt(upper.tri(d))$value,]
+  colnames(sorenson)<-c("To","From","Sorenson")
+  ######################################
+  
+  ######################################
+  #Phylogenetic Betadiversity
+
+  #Phylosor Calculation see Bryant 2008
+  phylo.matrix<-as.matrix(phylosor(comm,tree))
+  diag(phylo.matrix)<-NA
+  Phylosor.phylo<-melt(phylo.matrix)
+  colnames(Phylosor.phylo)<-c("To","From","Phylosor.Phylo")
+  Phylosor.phylo$Phylosor.Phylo<-1-Phylosor.phylo$Phylosor.Phylo
+  #######################################
+  
+  ######Phylogenetic Betadiversity
+  #Betasim from Holt 2013
+  
+  ###Phylosor is really slow from the PD function, try ben holt's betasim
+  #I broke this into seperate functions since it doesn't need to happen on each cell
+  
+  #From the initial rank 0 i computed the branching matrix and stored it as branch.out
+  
+  tcellbr<-psimbranches(tree,comm,branch.out)
+  
+  #Compute cell matrix and melt it into a dataframe 
+  pmatSum<-melt(as.matrix(matpsim(tcellbr)))
+  
+  colnames(pmatSum)<-c("To","From","BetaSim")
+  
+  #Trait frame needs to match siteXSpp table
+  mon_cut<-traits[rownames(traits) %in% colnames(comm),]
+  
+  #species without traits, take them out for just this portion of the analysis, keep the assemblage lsit
+  siteXspp_traits<-comm[,colnames(comm) %in% rownames(mon_cut)]
+  
+  #direct traits, need to be standardized
+  
+  #   #Zscores, standardized by sd and subtracted means
+  #   means<-apply(mon_cut,2,mean)
+  #   Bill<-mon_cut$Bill - means["Bill"]/sd(mon_cut$Bill)
+  #   Mass<-mon_cut$Mass - means["Mass"]/sd(mon_cut$Mass)
+  #   WingChord<-(mon_cut$WingChord - means["WingChord"])/sd(mon_cut$WingChord)
+  #   z.scores<-data.frame(Bill,Mass,WingChord)
+  #   rownames(z.scores)<-rownames(mon_cut)
+  #   newSGdist<-dist(z.scores,method="euclidean")
+  #   
+  
+  #If you wanted to collapse traits into PC axis using: 
+  prc_traits<-prcomp(mon_cut,scale=TRUE)
+  newSGdist <- dist(prc_traits$x)
+  
+  #create sp.list for trait function
+  sp.list<-lapply(rownames(siteXspp_traits),function(k){
+    x<-siteXspp_traits[k,]
+    names(x[which(x==1)])
+  })
+  
+  names(sp.list)<-rownames(siteXspp_traits)
+  dists <- as.matrix(newSGdist)
+  
+  rownames(dists) <- rownames(mon_cut)
+  colnames(dists) <- rownames(mon_cut)
+  
+  #walk through each pair of cells and compute trait betadiversity using MNNTD
+  sgtraitMNTD <- sapply(rownames(siteXspp_traits),function(i){
+    
+    #Iterator count
+    #print(round(which(rownames(siteXspp_traits)==i)/nrow(siteXspp_traits),3))
+    
+    #set iterator
+    A<-i
+    
+    #
+    out<-lapply(rownames(siteXspp_traits)[1:(which(rownames(siteXspp_traits) == i))], function(B) {MNND(A,B,sp.list=sp.list,dists=dists)})
+    names(out)<-rownames(siteXspp_traits)[1:(which(rownames(siteXspp_traits) == i))]
+    return(out)
+  })
+  
+  #name trait matrix
+  names(sgtraitMNTD) <- rownames(siteXspp_traits)
+  melt.MNTD<-melt(sgtraitMNTD)
+  colnames(melt.MNTD)<-c("MNTD","To","From")
+  
+  #Combine with other metrics into one large dataframe
+  
+  Allmetrics0<-merge(Phylosor.phylo,melt.MNTD,by=c("To","From"))
+  Allmetrics1<-merge(Allmetrics0,sorenson,by=c("To","From"))
+  Allmetrics<-merge(Allmetrics1,pmatSum,by=c("To","From"))
+  
+  return(Allmetrics)}
+
+
+#Wrapper function!
+
+#betaPar function takes in the siteXspp argument (comm), the rank of the node (rank), and 
+#the chunks for which to split indices. The function finds all pairwise comparisons of an index (slow)
+#breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
+
+betaPar<-function(comm,rankNumber,chunks){
+  #Create all pairwise combinations of siteXspp
+  z<-combn(nrow(comm),2)
+    
+  #split rows into indices, we want each loop to take about an hour, 
+  #THe function is initially timed at 20 seconds, 
+  IndexFunction<-splitIndices(ncol(z),chunks)
+  
+  ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
+  Index_Space<-z[,IndexFunction[[rankNumber]]]
+  
+#Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
+  holder<-matrix(nrow=ncol(Index_Space),ncol=5)
+  
+  #Within a chunk, loop through the indexes and compute betadiversity
+  for (x in 1:ncol(Index_Space)){
+    
+    #Grab the correct index
+    index_col<-Index_Space[,x] 
+    
+    #get the comm row
+    comm.d<-comm[c(index_col[[1]],index_col[[2]]),]
+    
+    #compute beta metrics
+    out<-beta_all(comm.d,tree=tree,traits=traits)
+    holder[x,]<-as.matrix(out)
+  }
+  
+  return(holder)}
