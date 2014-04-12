@@ -70,6 +70,9 @@ if (comm.rank()==0){ # only read on process 0
   #Read in phylogeny
   tree<-read.tree(paste(droppath,"Dimensions/Data/Brazil/BenH/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk",sep=""))
   
+  #remove species in the siteXspp that are not in phylogeny
+  siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
+  
   #bring in traits
   traits.o <- read.table(paste(droppath,"Dimensions/Data/Brazil/BenH/All_Mammal_Data-9-6-13.txt",sep=""),header=TRUE)
   
@@ -94,14 +97,14 @@ if (comm.rank()==0){ # only read on process 0
  
   #################Data prep on first rank, we want to place the most time consuming steps that are not parallelizable here?
   #Turn phylo object into a matrix
-  branch.out<-branching(tree)
+  system.time(branch.out<-branching(tree))
   
   ####Data Load Complete####
   #compute cell by branch relationship for all cells for ben holt's function
   
   #Broadcast to all other nodes, can this be run in one command?
   #Option 1, pack them into a list and unlist them on each node
-  dataExport<-list(siteXspp,tree,splist,traits,br_1)
+  dataExport<-list(siteXspp,tree,splist,traits,branch.out)
   
 } else {
   dataExport<-NULL

@@ -184,13 +184,13 @@ cellbr <- function(i,spp_br, com)
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
 beta_all<-function(comm,tree,traits,beta.sim=TRUE,phylosor.c=FALSE){
-
+  
   if(sum(comm)==0){return(NA)}
   
   #remove all species with no records in the row
   comm<-comm[,which(!apply(comm,2,sum)==0)]
   
-
+  
   #####################################
   ##Taxonomic Betadiversity
   
@@ -200,16 +200,16 @@ beta_all<-function(comm,tree,traits,beta.sim=TRUE,phylosor.c=FALSE){
   ######################################
   
   if(phylosor.c==TRUE){
-  ######################################
-  #Phylogenetic Betadiversity
-
-  #Phylosor Calculation see Bryant 2008
-  phylo.matrix<-as.matrix(phylosor(comm,tree))
-  diag(phylo.matrix)<-NA
-  Phylosor.phylo<-melt(phylo.matrix)
-  colnames(Phylosor.phylo)<-c("To","From","Phylosor.Phylo")
-  Phylosor.phylo$Phylosor.Phylo<-1-Phylosor.phylo$Phylosor.Phylo
-  Allmetrics0<-merge(Phylosor.phylo,sorenson,by=c("To","From"))
+    ######################################
+    #Phylogenetic Betadiversity
+    
+    #Phylosor Calculation see Bryant 2008
+    phylo.matrix<-as.matrix(phylosor(comm,tree))
+    diag(phylo.matrix)<-NA
+    Phylosor.phylo<-melt(phylo.matrix)
+    colnames(Phylosor.phylo)<-c("To","From","Phylosor.Phylo")
+    Phylosor.phylo$Phylosor.Phylo<-1-Phylosor.phylo$Phylosor.Phylo
+    Allmetrics0<-merge(Phylosor.phylo,sorenson,by=c("To","From"))
   }
   #######################################
   
@@ -222,7 +222,7 @@ beta_all<-function(comm,tree,traits,beta.sim=TRUE,phylosor.c=FALSE){
   #From the initial rank 0 i computed the branching matrix and stored it as branch.out
   if(beta.sim==TRUE){
     tcellbr<-psimbranches(tree,comm,branch.out)
-  
+    
     #Compute cell matrix and melt it into a dataframe 
     betaSIM<-matpsim(tcellbr)
     pmatSum<-melt(betaSIM)
@@ -299,10 +299,10 @@ beta_all<-function(comm,tree,traits,beta.sim=TRUE,phylosor.c=FALSE){
 #breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
 
 betaPar<-function(comm,rankNumber,chunks,beta.sim=TRUE){
-
+browser()
   #Create all pairwise combinations of siteXspp
   z<-combn(nrow(comm),2)
-    
+  
   #split rows into indices, we want each loop to take about an hour, 
   #THe function is initially timed at 20 seconds, 
   IndexFunction<-splitIndices(ncol(z),chunks)
@@ -310,7 +310,7 @@ betaPar<-function(comm,rankNumber,chunks,beta.sim=TRUE){
   ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
   Index_Space<-z[,IndexFunction[[rankNumber]]]
   
-#Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
+  #Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
   holder<-list()
   
   #Within a chunk, loop through the indexes and compute betadiversity
@@ -322,9 +322,15 @@ betaPar<-function(comm,rankNumber,chunks,beta.sim=TRUE){
     #get the comm row
     comm.d<-comm[c(index_col[[1]],index_col[[2]]),]
     
-    #compute beta metrics
-    out<-beta_all(comm.d,tree=tree,traits=traits)
-    holder[[x]]<-out
+    #if the rows are identical, betadiversity is 0
+    if(sum(!comm.d[1,]==comm.d[2,])==0){
+      holder[[x]]<-data.frame(To=index_col[[1]],From=index_col[[2]],BetaSim=0,Sorenson=0,MNTD=0)
+    } else{
+      
+      #compute beta metrics
+      out<-beta_all(comm.d,tree=tree,traits=traits)
+      holder[[x]]<-out
+    }
   }
   
   #bind to a dataframe
