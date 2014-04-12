@@ -131,7 +131,6 @@ br_1<-dataExport[[5]]
 #If so, add which rows below
 comm<-siteXspp[1:5,]
 
-
 #####################################################
 ##############Compute Betadiversity##################
 #####################################################
@@ -141,17 +140,12 @@ comm<-siteXspp[1:5,]
 #rank<-comm.rank
 #system.time(beta_out<-betaPar(siteXspp,rank,2))
 
-
-timeF<-system.time(beta_out<-betaPar(comm,1,2))
-
-#convert to data frame
-beta_data<-as.data.frame(beta_out)
-
-colnames(beta_data)<-c('To','From',"Phylosor","MNTD","Sorenson","BetaSim")
+timeF<-system.time(beta_out<-betaPar(comm,1,2,beta.sim=TRUE))
 
 #What is the correlation between betasim and phylosor
 
-ggpairs(beta_data[,-c(1,2)],cor=TRUE)
+ggpairs(beta_out[,-c(1,2)],cor=TRUE)
+
 #profile
 Rprof(tmp <- tempfile())
 beta_out<-betaPar(comm,1,2)
@@ -163,9 +157,6 @@ require(prog)
 
 #Return timing argument to console
 print(timeF)
-
-#name columns
-colnames(beta_out)<-c("To","From","Phylosor.Phylo","MNTD","Sorenson")
 
 #Gather all to comm Rank 0 and write to file? cast into giant dataframe?
 

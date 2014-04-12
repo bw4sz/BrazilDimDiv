@@ -183,7 +183,8 @@ cellbr <- function(i,spp_br, com)
 
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
-beta_all<-function(comm,tree,traits){
+beta_all<-function(comm,tree,traits,beta.sim=TRUE,phylosor.c=FALSE){
+
   if(sum(comm)==0){return(NA)}
   
   #remove all species with no records in the row
@@ -198,6 +199,7 @@ beta_all<-function(comm,tree,traits){
   colnames(sorenson)<-c("To","From","Sorenson")
   ######################################
   
+  if(phylosor.c==TRUE){
   ######################################
   #Phylogenetic Betadiversity
 
@@ -207,6 +209,8 @@ beta_all<-function(comm,tree,traits){
   Phylosor.phylo<-melt(phylo.matrix)
   colnames(Phylosor.phylo)<-c("To","From","Phylosor.Phylo")
   Phylosor.phylo$Phylosor.Phylo<-1-Phylosor.phylo$Phylosor.Phylo
+  Allmetrics0<-merge(Phylosor.phylo,sorenson,by=c("To","From"))
+  }
   #######################################
   
   ######Phylogenetic Betadiversity
@@ -216,14 +220,17 @@ beta_all<-function(comm,tree,traits){
   #I broke this into seperate functions since it doesn't need to happen on each cell
   
   #From the initial rank 0 i computed the branching matrix and stored it as branch.out
+  if(beta.sim==TRUE){
+    tcellbr<-psimbranches(tree,comm,branch.out)
   
-  tcellbr<-psimbranches(tree,comm,branch.out)
-  
-  #Compute cell matrix and melt it into a dataframe 
-  betaSIM<-matpsim(tcellbr)
-  pmatSum<-melt(betaSIM)
-  
-  colnames(pmatSum)<-c("To","From","BetaSim")
+    #Compute cell matrix and melt it into a dataframe 
+    betaSIM<-matpsim(tcellbr)
+    pmatSum<-melt(betaSIM)
+    colnames(pmatSum)<-c("To","From","BetaSim")
+    
+    #Merge with taxonomic
+    Allmetrics0<-merge(pmatSum,sorenson,by=c("To","From"))
+  }
   
   #Trait frame needs to match siteXSpp table
   mon_cut<-traits[rownames(traits) %in% colnames(comm),]
@@ -280,10 +287,7 @@ beta_all<-function(comm,tree,traits){
   colnames(melt.MNTD)<-c("MNTD","To","From")
   
   #Combine with other metrics into one large dataframe
-  
-  Allmetrics0<-merge(Phylosor.phylo,melt.MNTD,by=c("To","From"))
-  Allmetrics1<-merge(Allmetrics0,sorenson,by=c("To","From"))
-  Allmetrics<-merge(Allmetrics1,pmatSum,by=c("To","From"))
+  Allmetrics<-merge(Allmetrics0,melt.MNTD,by=c("To","From"))
   
   return(Allmetrics)}
 
@@ -294,8 +298,8 @@ beta_all<-function(comm,tree,traits){
 #the chunks for which to split indices. The function finds all pairwise comparisons of an index (slow)
 #breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
 
-betaPar<-function(comm,rankNumber,chunks){
-  
+betaPar<-function(comm,rankNumber,chunks,beta.sim=TRUE){
+
   #Create all pairwise combinations of siteXspp
   z<-combn(nrow(comm),2)
     
@@ -307,7 +311,7 @@ betaPar<-function(comm,rankNumber,chunks){
   Index_Space<-z[,IndexFunction[[rankNumber]]]
   
 #Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
-  holder<-matrix(nrow=ncol(Index_Space),ncol=6)
+  holder<-list()
   
   #Within a chunk, loop through the indexes and compute betadiversity
   for (x in 1:ncol(Index_Space)){
@@ -320,7 +324,10 @@ betaPar<-function(comm,rankNumber,chunks){
     
     #compute beta metrics
     out<-beta_all(comm.d,tree=tree,traits=traits)
-    holder[x,]<-as.matrix(out)
+    holder[[x]]<-out
   }
+  
+  #bind to a dataframe
+  holder<-rbind.fill(holder)
   
   return(holder)}
