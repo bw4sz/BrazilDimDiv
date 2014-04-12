@@ -113,6 +113,7 @@ psimbranches<-function(phyl=tree,com=comm,branch.out=branch.out){
   tcellbr <<- tcellbr
   
   print("cell_br")
+  print(tcellbr)
   return(tcellbr)
 }
 
@@ -123,10 +124,11 @@ matpsim <- function(tcellbr) # make sure nodes are labelled and that com and phy
   # calculate full cell by cell phylobsim matrix
   
   psim <- foreach(j = rownames(tcellbr)) %do% {
-    print(j);cell_a <- j; 
+    print(j)
+    cell_a <- j 
     unlist(
       lapply(rownames(tcellbr)[1:(which(rownames(tcellbr) == j))], 
-             nmatsim
+             nmatsim,cell_a=j
       )
     )
   }
@@ -143,7 +145,7 @@ matpsim <- function(tcellbr) # make sure nodes are labelled and that com and phy
 
 #calculate phylosim between cells, broken out from original function
 
-nmatsim <- function(cell_b) # samp = grid cell of interest
+nmatsim <- function(cell_b,cell_a) # samp = grid cell of interest
 {
   a_br  <- tcellbr[cell_a,]
   b_br <- tcellbr[cell_b,]
@@ -182,7 +184,6 @@ cellbr <- function(i,spp_br, com)
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
 beta_all<-function(comm,tree,traits){
-  
   if(sum(comm)==0){return(NA)}
   
   #remove all species with no records in the row
@@ -216,7 +217,7 @@ beta_all<-function(comm,tree,traits){
   
   #From the initial rank 0 i computed the branching matrix and stored it as branch.out
   
-  tcellbr<-psimbranches(tree,comm.d,branch.out)
+  tcellbr<-psimbranches(tree,comm,branch.out)
   
   #Compute cell matrix and melt it into a dataframe 
   betaSIM<-matpsim(tcellbr)
@@ -294,6 +295,8 @@ beta_all<-function(comm,tree,traits){
 #breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
 
 betaPar<-function(comm,rankNumber,chunks){
+  browser()
+  
   #Create all pairwise combinations of siteXspp
   z<-combn(nrow(comm),2)
     
@@ -305,7 +308,7 @@ betaPar<-function(comm,rankNumber,chunks){
   Index_Space<-z[,IndexFunction[[rankNumber]]]
   
 #Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
-  holder<-matrix(nrow=ncol(Index_Space),ncol=5)
+  holder<-matrix(nrow=ncol(Index_Space),ncol=6)
   
   #Within a chunk, loop through the indexes and compute betadiversity
   for (x in 1:ncol(Index_Space)){

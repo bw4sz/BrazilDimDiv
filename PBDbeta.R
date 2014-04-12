@@ -26,6 +26,7 @@ require(scales)
 require(raster)
 require(parallel)
 require(foreach)
+
 #Everyone say hello
 comm.print(comm.rank(), all.rank = TRUE)
 
@@ -38,16 +39,20 @@ droppath<-"C:/Users/Ben/Dropbox/"
 gitpath<-"C:/Users/Ben/Documents/BrazilDimDiv/"
   
 #Set dropbox path
-droppath<-"/home1/02443/bw4sz/DimDiv/"
+#droppath<-"/home1/02443/bw4sz/DimDiv/"
 
 #Set git path
-gitpath<-"C:/Users/Ben/Documents/BrazilDimDiv/"
+#gitpath<-"/home1/02443/bw4sz/DimDiv/"
+
+###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
+
+source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
 
 #Read in data on the first file
 
 if (comm.rank()==0){ # only read on process 0
   ################
-  
+  if(testing=FALSE){
   #Read in species matrix
   siteXspp <- read.csv(paste(droppath,"Dimensions/Data/Brazil/BenH/ninexdat.csv",sep=""))
   
@@ -75,15 +80,14 @@ if (comm.rank()==0){ # only read on process 0
   
   #just get a complete dataset
   traits<-traits[complete.cases(traits),]
-  
-  dim(traits)
+  }
   
   #Testing data
   if(testing==TRUE)    {
     #Dummy phylogeny, siteXspp and traits from phylocom picante package
     data(phylocom)
     tree<-phylocom$phylo
-    siteXspp<-phylocom$sample
+    comm<-phylocom$sample
     traits<-phylocom$traits
     print("Testing Data Loaded")
   }
@@ -120,9 +124,6 @@ br_1<-dataExport[[5]]
 #list loaded packages
 (.packages())
 
-###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
-
-source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
 
 #Do we want to subset the data for a test case? 
 #If so, add which rows below
@@ -138,7 +139,10 @@ comm<-siteXspp[1:5,]
 #rank<-comm.rank
 #system.time(beta_out<-betaPar(siteXspp,rank,2))
 
+
 timeF<-system.time(beta_out<-betaPar(comm,1,2))
+
+#turn to data frame and name columns
 
 #profile
 Rprof(tmp <- tempfile())
