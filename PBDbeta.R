@@ -102,11 +102,13 @@ if (comm.rank()==0){ # only read on process 0
   #Broadcast to all other nodes, can this be run in one command?
   #Option 1, pack them into a list and unlist them on each node
   dataExport<-list(siteXspp,tree,splist,traits,br_1)
-  bcast(dataExport)
   
 } else {
-  x<-NULL
+  dataExport<-NULL
 }
+
+#broadcast to all files
+bcast(dataExport)
 
 #sink output for overnight runs so we can see it tomorrow
 #sink("")
@@ -142,8 +144,14 @@ comm<-siteXspp[1:5,]
 
 timeF<-system.time(beta_out<-betaPar(comm,1,2))
 
-#turn to data frame and name columns
+#convert to data frame
+beta_data<-as.data.frame(beta_out)
 
+colnames(beta_data)<-c('To','From',"Phylosor","MNTD","Sorenson","BetaSim")
+
+#What is the correlation between betasim and phylosor
+
+ggpairs(beta_data[,-c(1,2)],cor=TRUE)
 #profile
 Rprof(tmp <- tempfile())
 beta_out<-betaPar(comm,1,2)

@@ -84,7 +84,7 @@ psimbranches<-function(phyl=tree,com=comm,branch.out=branch.out){
 }
   names(brs) <- spp
   
-  print("brs")
+  #print("brs")
   
   # create a species by phy branch matrix
   
@@ -100,7 +100,7 @@ psimbranches<-function(phyl=tree,com=comm,branch.out=branch.out){
   spp_br <- spp_br[,-(ncol(com)+1)] # removes root
   spp_br <- spp_br[,!colSums(spp_br) %in% c(0,nrow(spp_br))]  # here take out all common branches instead
   
-  print("spp_br")
+  #print("spp_br")
   
   spp_br <<- spp_br
   
@@ -112,8 +112,8 @@ psimbranches<-function(phyl=tree,com=comm,branch.out=branch.out){
   rownames(tcellbr) <- rownames(com)
   tcellbr <<- tcellbr
   
-  print("cell_br")
-  print(tcellbr)
+  #print("cell_br")
+  #print(tcellbr)
   return(tcellbr)
 }
 
@@ -124,7 +124,7 @@ matpsim <- function(tcellbr) # make sure nodes are labelled and that com and phy
   # calculate full cell by cell phylobsim matrix
   
   psim <- foreach(j = rownames(tcellbr)) %do% {
-    print(j)
+    #print(j)
     cell_a <- j 
     unlist(
       lapply(rownames(tcellbr)[1:(which(rownames(tcellbr) == j))], 
@@ -133,13 +133,13 @@ matpsim <- function(tcellbr) # make sure nodes are labelled and that com and phy
     )
   }
   
-  print("psim")
+  #print("psim")
   psim <- do.call("rbind", psim)
   rownames(psim) <- rownames(tcellbr)
   colnames(psim) <- rownames(tcellbr)    
   psim[upper.tri(psim)] <- psim[lower.tri(psim)]
-  psim <- as.dist(psim)
-  print("its over")
+  #psim <- as.dist(psim)
+  #print("its over")
   return(psim)
 }
 
@@ -221,7 +221,7 @@ beta_all<-function(comm,tree,traits){
   
   #Compute cell matrix and melt it into a dataframe 
   betaSIM<-matpsim(tcellbr)
-  pmatSum<-melt(as.matrix(betaSIM))
+  pmatSum<-melt(betaSIM)
   
   colnames(pmatSum)<-c("To","From","BetaSim")
   
@@ -295,7 +295,6 @@ beta_all<-function(comm,tree,traits){
 #breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
 
 betaPar<-function(comm,rankNumber,chunks){
-  browser()
   
   #Create all pairwise combinations of siteXspp
   z<-combn(nrow(comm),2)
