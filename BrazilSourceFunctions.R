@@ -216,10 +216,11 @@ beta_all<-function(comm,tree,traits){
   
   #From the initial rank 0 i computed the branching matrix and stored it as branch.out
   
-  tcellbr<-psimbranches(tree,comm,branch.out)
+  tcellbr<-psimbranches(tree,comm.d,branch.out)
   
   #Compute cell matrix and melt it into a dataframe 
-  pmatSum<-melt(as.matrix(matpsim(tcellbr)))
+  betaSIM<-matpsim(tcellbr)
+  pmatSum<-melt(as.matrix(betaSIM))
   
   colnames(pmatSum)<-c("To","From","BetaSim")
   
@@ -308,7 +309,7 @@ betaPar<-function(comm,rankNumber,chunks){
   
   #Within a chunk, loop through the indexes and compute betadiversity
   for (x in 1:ncol(Index_Space)){
-    
+    print(x)
     #Grab the correct index
     index_col<-Index_Space[,x] 
     
