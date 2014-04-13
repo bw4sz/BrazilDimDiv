@@ -55,7 +55,6 @@ branching<-function(phyl){
 #Function computes the cell by branch matrix
 
 psimbranches<-function(phyl=tree,com=comm,branch.out=branch.out){
-  
   #unpack the output from the branching function
   dat<-branch.out[[1]]
   new<-branch.out[[2]]
@@ -67,8 +66,9 @@ psimbranches<-function(phyl=tree,com=comm,branch.out=branch.out){
   # create a list of phy branches for each species
   brs <-  foreach(i = spp, .packages = "phylobase") %do% #this loop makes a list of branches for each species
 {  
-  #print(which(spp == i)/length(spp))
-  #print(date())
+  print(which(spp == i)/length(spp))
+  print(date())
+  print(i)
   brsp <- vector()
   br   <- as.numeric(rownames(dat[which(dat$label==i),]))
   repeat{
@@ -183,13 +183,12 @@ cellbr <- function(i,spp_br, com)
 
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
-beta_all<-function(comm,tree,traits,beta.sim=TRUE,phylosor.c=FALSE){
+beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr=tcellbr,beta.sim,phylosor.c){
   
   if(sum(comm)==0){return(NA)}
   
   #remove all species with no records in the row
   comm<-comm[,which(!apply(comm,2,sum)==0)]
-  
   
   #####################################
   ##Taxonomic Betadiversity
@@ -221,7 +220,6 @@ beta_all<-function(comm,tree,traits,beta.sim=TRUE,phylosor.c=FALSE){
   
   #From the initial rank 0 i computed the branching matrix and stored it as branch.out
   if(beta.sim==TRUE){
-    tcellbr<-psimbranches(tree,comm,branch.out)
     
     #Compute cell matrix and melt it into a dataframe 
     betaSIM<-matpsim(tcellbr)
@@ -298,8 +296,7 @@ beta_all<-function(comm,tree,traits,beta.sim=TRUE,phylosor.c=FALSE){
 #the chunks for which to split indices. The function finds all pairwise comparisons of an index (slow)
 #breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
 
-betaPar<-function(comm,rankNumber,chunks,beta.sim=TRUE){
-browser()
+betaPar<-function(comm,rankNumber,chunks,beta.sim,phylosor.c){
   #Create all pairwise combinations of siteXspp
   z<-combn(nrow(comm),2)
   
@@ -328,7 +325,7 @@ browser()
     } else{
       
       #compute beta metrics
-      out<-beta_all(comm.d,tree=tree,traits=traits)
+      out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr,phylosor.c,beta.sim)
       holder[[x]]<-out
     }
   }

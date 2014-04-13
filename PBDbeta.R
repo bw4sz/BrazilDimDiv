@@ -28,7 +28,7 @@ require(parallel)
 require(foreach)
 
 #Everyone say hello
-comm.print(comm.rank(), all.rank = TRUE)
+#comm.print(comm.rank(), all.rank = TRUE)
 
 ##If running locally set droppath
 
@@ -50,7 +50,7 @@ source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
 
 #Read in data on the first file
 
-if (comm.rank()==0){ # only read on process 0
+#if (comm.rank()==0){ # only read on process 0
   ################
   if(testing=FALSE){
   #Read in species matrix
@@ -99,12 +99,14 @@ if (comm.rank()==0){ # only read on process 0
   #Turn phylo object into a matrix
   system.time(branch.out<-branching(tree))
   
+  system.time(tcellbr<-psimbranches(tree,comm,branch.out))
+  
   ####Data Load Complete####
   #compute cell by branch relationship for all cells for ben holt's function
   
   #Broadcast to all other nodes, can this be run in one command?
   #Option 1, pack them into a list and unlist them on each node
-  dataExport<-list(siteXspp,tree,splist,traits,branch.out)
+  dataExport<-list(siteXspp,tree,splist,traits,tcellbr)
   
 } else {
   dataExport<-NULL
@@ -125,14 +127,14 @@ siteXspp<-dataExport[[1]]
 tree<-dataExport[[2]]
 splist<-dataExport[[3]]
 traits<-dataExport[[4]]
-br_1<-dataExport[[5]]
+tcellbr<-dataExport[[5]]
 #list loaded packages
 (.packages())
 
 
 #Do we want to subset the data for a test case? 
 #If so, add which rows below
-comm<-siteXspp[1:5,]
+comm<-siteXspp[1:20,]
 
 #####################################################
 ##############Compute Betadiversity##################
@@ -143,20 +145,28 @@ comm<-siteXspp[1:5,]
 #rank<-comm.rank
 #system.time(beta_out<-betaPar(siteXspp,rank,2))
 
-timeF<-system.time(beta_out<-betaPar(comm,1,2,beta.sim=TRUE))
 
-#What is the correlation between betasim and phylosor
+timeF<-system.time(beta_out<-betaPar(rbind(comm,comm),1,2,beta.sim=TRUE,phylosor.c=FALSE))
+timeF
+timeF<-system.time(beta_out<-betaPar(rbind(comm,comm),1,2,beta.sim=FALSE,phylosor.c=TRUE))
+timeF
 
+#benchmark the two approaches across 10 runs.
+require(rbenchmark)
+a<-benchmark(replications=2,
+          betaPar(rbind(comm,comm),1,2,beta.sim=TRUE,phylosor.c=FALSE),
+          betaPar(rbind(comm,comm),1,2,beta.sim=FALSE,phylosor.c=TRUE))
+
+#Correlation among dimensions
 ggpairs(beta_out[,-c(1,2)],cor=TRUE)
 
 #profile
 Rprof(tmp <- tempfile())
-beta_out<-betaPar(comm,1,2)
+beta_out<-betaPar(comm,1,2,beta.sim=TRUE,phylosor.c=TRUE)
 Rprof(NULL)
 summaryRprof(tmp)
 unlink(tmp)
 
-require(prog)
 
 #Return timing argument to console
 print(timeF)
