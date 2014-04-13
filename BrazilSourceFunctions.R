@@ -216,7 +216,7 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr=tcellbr,beta.sim,ph
   
   #From the initial rank 0 i computed the branching matrix and stored it as branch.out
   if(beta.sim){
-    print("Computing betasim")
+
     #Compute cell matrix and melt it into a dataframe 
     betaSIM<-matpsim(comm,tcellbr)
     pmatSum<-melt(betaSIM)
@@ -296,16 +296,7 @@ betaPar<-function(comm,rankNumber,chunks,beta.sim,phylosor.c){
   #Create all pairwise combinations of siteXspp
   z<-combn(nrow(comm),2)
   
-  print(nrow(z))
-  #Compute cell by branch matrix for just those communities, this will greatly speed up the phylogenetic diversity metric
-  tcellbr <- lapply(rownames(comm),function(j) {cellbr(j,spp_br,comm)})
-  
-  tcellbr<-do.call(rbind,tcellbr)
-  print("cell_br")
-  
-  rownames(tcellbr) <- rownames(comm)
-  tcellbr <<- tcellbr
-  
+  print(paste("Total number of iterations:",ncol(z)))
   
   #split rows into indices, we want each loop to take about an hour, 
   #THe function is initially timed at 20 seconds, 

@@ -122,7 +122,7 @@ source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
 
 #Do we want to subset the data for a test case? 
 #If so, add which rows below
-comm<-siteXspp[,]
+comm<-siteXspp[1:100,]
 
 #####################################################
 ##############Compute Betadiversity##################
@@ -134,9 +134,10 @@ comm<-siteXspp[,]
 #system.time(beta_out<-betaPar(siteXspp,rank,2))
 
 
-timeF<-system.time(beta_out<-betaPar(comm,rankNumber=1,chunks=500,phylosor.c=FALSE,beta.sim=TRUE))
+timeF<-system.time(beta_out<-betaPar(comm,rankNumber=1,chunks=2,phylosor.c=FALSE,beta.sim=TRUE))
 timeF
 
+#Test alterantive methods
 #benchmark the two approaches across 10 runs.
 require(rbenchmark)
 a<-benchmark(replications=1,
@@ -144,15 +145,8 @@ a<-benchmark(replications=1,
           betaPar(comm,1,2,beta.sim=FALSE,phylosor.c=TRUE))
 
 #Correlation among dimensions
-require(GGally)
 ggpairs(beta_out[,-c(1,2)],cor=TRUE)
 
-#profile
-Rprof(tmp <- tempfile())
-beta_out<-betaPar(comm,1,2,beta.sim=TRUE,phylosor.c=TRUE)
-Rprof(NULL)
-summaryRprof(tmp)
-unlink(tmp)
 
 
 #Return timing argument to console
