@@ -9,21 +9,17 @@
 #Set testing flag, 
 #this subsitutes the real data for a tiny dummy example for debugging
 
-testing<-TRUE
+testing<-FALSE
 
 ##################
 
-require(pbdMPI)
+#require(pbdMPI)
 
 init()
 
-require(vegan)
 require(reshape)
 require(picante)
 require(ggplot2)
-require(stringr)
-require(scales)
-require(raster)
 require(parallel)
 require(foreach)
 
@@ -37,12 +33,6 @@ droppath<-"C:/Users/Ben/Dropbox/"
 
 #Set git path
 gitpath<-"C:/Users/Ben/Documents/BrazilDimDiv/"
-  
-#Set dropbox path
-#droppath<-"/home1/02443/bw4sz/DimDiv/"
-
-#Set git path
-#gitpath<-"/home1/02443/bw4sz/DimDiv/"
 
 ###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
 
@@ -70,6 +60,10 @@ source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
   #Read in phylogeny
   tree<-read.tree(paste(droppath,"Dimensions/Data/Brazil/BenH/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk",sep=""))
   
+  #Read in cell by branch table made from source
+  #source(paste(gitpath,"parallelphylomatrix.R"))
+  load(file=paste(gitpath,"spp_br.RData",sep=""))
+  
   #remove species in the siteXspp that are not in phylogeny
   siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
   
@@ -94,26 +88,20 @@ source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
     traits<-phylocom$traits
     print("Testing Data Loaded")
   }
- 
-  #################Data prep on first rank, we want to place the most time consuming steps that are not parallelizable here?
-  #Turn phylo object into a matrix
-  system.time(branch.out<-branching(tree))
-  
-  system.time(tcellbr<-psimbranches(tree,comm,branch.out))
-  
+   
   ####Data Load Complete####
   #compute cell by branch relationship for all cells for ben holt's function
   
   #Broadcast to all other nodes, can this be run in one command?
   #Option 1, pack them into a list and unlist them on each node
-  dataExport<-list(siteXspp,tree,splist,traits,tcellbr)
+  #dataExport<-list(siteXspp,tree,splist,traits,tcellbr)
   
-} else {
-  dataExport<-NULL
-}
+#} #else {
+  #dataExport<-NULL
+#}
 
 #broadcast to all files
-bcast(dataExport)
+#bcast(dataExport)
 
 #sink output for overnight runs so we can see it tomorrow
 #sink("")
@@ -121,20 +109,20 @@ bcast(dataExport)
 ########################################
 ###############Read in data on the node
 ########################################
-
-#Seperate and name the objects that were broadcast from the rank 0 node.
-siteXspp<-dataExport[[1]]
-tree<-dataExport[[2]]
-splist<-dataExport[[3]]
-traits<-dataExport[[4]]
-tcellbr<-dataExport[[5]]
-#list loaded packages
-(.packages())
-
+# 
+# #Seperate and name the objects that were broadcast from the rank 0 node.
+# siteXspp<-dataExport[[1]]
+# tree<-dataExport[[2]]
+# splist<-dataExport[[3]]
+# traits<-dataExport[[4]]
+# tcellbr<-dataExport[[5]]
+# #list loaded packages
+# (.packages())
+# 
 
 #Do we want to subset the data for a test case? 
 #If so, add which rows below
-comm<-siteXspp[1:20,]
+comm<-siteXspp[,]
 
 #####################################################
 ##############Compute Betadiversity##################
@@ -146,18 +134,17 @@ comm<-siteXspp[1:20,]
 #system.time(beta_out<-betaPar(siteXspp,rank,2))
 
 
-timeF<-system.time(beta_out<-betaPar(rbind(comm,comm),1,2,beta.sim=TRUE,phylosor.c=FALSE))
-timeF
-timeF<-system.time(beta_out<-betaPar(rbind(comm,comm),1,2,beta.sim=FALSE,phylosor.c=TRUE))
+timeF<-system.time(beta_out<-betaPar(comm,rankNumber=1,chunks=500,phylosor.c=FALSE,beta.sim=TRUE))
 timeF
 
 #benchmark the two approaches across 10 runs.
 require(rbenchmark)
-a<-benchmark(replications=2,
-          betaPar(rbind(comm,comm),1,2,beta.sim=TRUE,phylosor.c=FALSE),
-          betaPar(rbind(comm,comm),1,2,beta.sim=FALSE,phylosor.c=TRUE))
+a<-benchmark(replications=1,
+          betaPar(comm,1,2,beta.sim=TRUE,phylosor.c=FALSE),
+          betaPar(comm,1,2,beta.sim=FALSE,phylosor.c=TRUE))
 
 #Correlation among dimensions
+require(GGally)
 ggpairs(beta_out[,-c(1,2)],cor=TRUE)
 
 #profile
