@@ -155,6 +155,7 @@ nmatsim <- function(cell_b,cell_a) # samp = grid cell of interest
 }
 
 
+
 # function to give the pres/abs of phy branches withi cell i, broken out from original function
 cellbr <- function(i,spp_br, com)
 {
@@ -177,7 +178,7 @@ cellbr <- function(i,spp_br, com)
 
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
-beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr=tcellbr,beta.sim,phylosor.c){
+beta_all<-function(comm=comm,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr=tcellbr){
   
   
   if(sum(comm)==0){return(NA)}
@@ -292,7 +293,7 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr=tcellbr,beta.sim,ph
 #the chunks for which to split indices. The function finds all pairwise comparisons of an index (slow)
 #breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
 
-betaPar<-function(comm,rankNumber,chunks,beta.sim,phylosor.c){
+betaPar<-function(comm,rankNumber,chunks,beta.sim,phylosor.c,tcellbr=tcellbr){
   #Create all pairwise combinations of siteXspp
   z<-combn(nrow(comm),2)
   
@@ -302,21 +303,17 @@ betaPar<-function(comm,rankNumber,chunks,beta.sim,phylosor.c){
   #THe function is initially timed at 20 seconds, 
   IndexFunction<-splitIndices(ncol(z),chunks)
   
+print(paste("Length of IndexFunction is:",length(IndexFunction)))
+
   ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
   Index_Space<-z[,IndexFunction[[rankNumber]]]
   
+
   #Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
   holder<-list()
   
-    #Compute cell by branch matrix for just those communities, this will greatly speed up the phylogenetic diversity metric
-  tcellbr <- lapply(rownames(comm),function(j) {cellbr(j,spp_br,comm)})
-    
-  tcellbr<-do.call(rbind,tcellbr)
-  print("cell_br")
-    
-  rownames(tcellbr) <- rownames(comm)
-  tcellbr <<- tcellbr
-  
+print(paste("Number of within loop calls:", ncol(Index_Space)))
+
   #Within a chunk, loop through the indexes and compute betadiversity
   for (x in 1:ncol(Index_Space)){
     print(x)
@@ -336,7 +333,7 @@ betaPar<-function(comm,rankNumber,chunks,beta.sim,phylosor.c){
       phylosor.c<-phylosor.c
       beta.sim<-beta.sim
       
-      out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr,beta.sim,phylosor.c)
+      out<-beta_all(comm.d,tree=tree,traits=traits,beta.sim,phylosor.c)
       holder[[x]]<-out
     }
   }

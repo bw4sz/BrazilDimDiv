@@ -1,0 +1,145 @@
+#Define Function
+
+library(pbdMPI,quietly=TRUE)
+
+init()
+
+require(picante,quietly=TRUE)
+require(foreach,quietly=TRUE)
+require(doSNOW,quietly=TRUE)
+require(phylobase,quietly=TRUE)
+
+#Set dropbox path
+
+droppath<-"/home1/02443/bw4sz/GlobalMammals/"
+
+setwd(droppath)
+
+####Read in data
+
+if(comm.rank()==0){
+#Read in species matrix
+
+siteXspp <- read.csv("Input/ninexdat.csv")
+
+#Just get the species data, starts on column 33 for this example
+siteXspp<-siteXspp[,33:ncol(siteXspp)]
+
+#Remove lines with less than 2 species
+richness<-apply(siteXspp,1,sum)
+keep<-which(richness > 2)
+siteXspp<-siteXspp[keep,]
+
+#Get entire species list
+splist<-colnames(siteXspp)
+
+#Read in phylogeny
+tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
+
+#remove species in the siteXspp that are not in phylogeny
+siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
+
+comm.print(dim(siteXspp))
+
+toB<-list(tree,siteXspp)
+} else {
+ toB<-NULL
+}
+
+comm.print(ls())
+#broadcast
+Bto<-bcast(toB)
+#unpack data
+
+comm.print(ls())
+
+siteXspp<-Bto[[2]]
+tree<-Bto[[1]]
+
+#Define Beta Function
+matpsim <- function(phyl, com) # make sure nodes are labelled and that com and phyl species match
+{
+  
+  # detail information for all phylo branches
+  new <- phylo4(phyl)
+  dat <- as.data.frame(print(new))
+  allbr <- dat$edge.length
+  names(allbr) <- getEdge(new)
+  spp <- colnames(com)
+
+  
+  # create a list of phy branches for each species
+
+  brs <-  mcapply(spp,function(i){ #this loop makes a list of branches for each species 
+print(i) 	
+
+ 
+#print(which(spp == i)/length(spp))
+  #print(date())
+  brsp <- vector()
+  br   <- as.numeric(rownames(dat[which(dat$label==i),]))
+  repeat{
+    brsn <- getEdge(new,br)
+    brsl <- dat[names(brsn),"edge.length"]
+    names(brsl) <- brsn
+    brsp <- c(brsp, brsl)
+    br   <- dat[br,3]
+    if(br == 0) {break}
+  }
+  
+  return(brsp)
+})
+
+  names(brs) <- spp
+  
+
+  print("brs")
+  
+  # create a species by phy branch matrix
+  
+  spp_br <- matrix(0,nrow = length(spp), ncol = length(allbr))
+  rownames(spp_br) <- spp
+  colnames(spp_br) <- names(allbr)
+  
+  for(i in spp)
+  {
+    spp_br[i,names(brs[[i]])] <- brs[[i]]
+  }
+  
+  spp_br <- spp_br[,-(ncol(com)+1)] # removes root
+  spp_br <- spp_br[,!colSums(spp_br) %in% c(0,nrow(spp_br))]  # here take out all common branches instead
+  
+  print("spp_br")
+  
+  spp_br <<- spp_br
+  
+  # function to give the pres/abs of phy branches withi cell i
+  
+  cellbr <- function(i,spp_br, com)
+  {
+    i_spp <- rownames(spp_br)[com[i,]>0]
+    if(length(i_spp) > 1)
+    {i_br  <- as.numeric(apply(spp_br[i_spp,],2,max))}
+    else  {i_br  <- as.numeric(spp_br[i_spp,]) }
+    names(i_br) <- colnames(spp_br)
+    return(i_br)
+  }
+  
+
+  tcellbr <- mcapply(rownames(com),function(j){cellbr(j,spp_br,com)})
+ 
+  tcellbr <- do.call("rbind", tcellbr)
+
+  print("cell_br")
+  rownames(tcellbr) <- rownames(com)
+  tcellbr <<- tcellbr
+ return(tcellbr) 
+ }
+
+#compute
+betaS<-matpsim(phyl=tree,com=siteXspp)
+
+#Write to file
+write.csv(betaS,"betaS.csv")
+
+save(betaS,"betaS.Rdata")

@@ -13,38 +13,37 @@ testing<-FALSE
 
 ##################
 
-#require(pbdMPI)
+require(pbdMPI,quietly=TRUE)
 
 init()
 
-require(reshape)
-require(picante)
-require(ggplot2)
-require(parallel)
-require(foreach)
+require(reshape,quietly=TRUE)
+require(picante,quietly=TRUE)
+require(ggplot2,quietly=TRUE)
+require(parallel,quietly=TRUE)
+require(foreach,quietly=TRUE)
+require(GGally,quietly=TRUE)
 
 #Everyone say hello
-#comm.print(comm.rank(), all.rank = TRUE)
+comm.print(comm.rank(), all.rank = TRUE)
 
 ##If running locally set droppath
 
-#Set dropbox path
-droppath<-"C:/Users/Ben/Dropbox/"
+droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 
-#Set git path
-gitpath<-"C:/Users/Ben/Documents/BrazilDimDiv/"
+setwd(droppath)
 
 ###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
 
-source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
+source("Input/BrazilSourceFunctions.R")
 
 #Read in data on the first file
 
-#if (comm.rank()==0){ # only read on process 0
+if (comm.rank()==0){ # only read on process 0
   ################
-  if(testing=FALSE){
+  if(testing==FALSE){
   #Read in species matrix
-  siteXspp <- read.csv(paste(droppath,"Dimensions/Data/Brazil/BenH/ninexdat.csv",sep=""))
+  siteXspp <- read.csv("Input/ninexdat.csv")
   
   #Just get the species data, starts on column 33 for this example
   siteXspp<-siteXspp[,33:ncol(siteXspp)]
@@ -58,17 +57,17 @@ source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
   splist<-colnames(siteXspp)
   
   #Read in phylogeny
-  tree<-read.tree(paste(droppath,"Dimensions/Data/Brazil/BenH/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk",sep=""))
+  tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
   
   #Read in cell by branch table made from source
   #source(paste(gitpath,"parallelphylomatrix.R"))
-  load(file=paste(gitpath,"tcellbr.RData",sep=""))
+  load(file="Input/tcellbr.RData")
   
   #remove species in the siteXspp that are not in phylogeny
   siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
   
   #bring in traits
-  traits.o <- read.table(paste(droppath,"Dimensions/Data/Brazil/BenH/All_Mammal_Data-9-6-13.txt",sep=""),header=TRUE)
+  traits.o <- read.table("Input/All_Mammal_Data-9-6-13.txt",header=TRUE)
   
   #Which traits do we want, just body mass and range size for now.
   traits<-traits.o[,colnames(traits.o) %in% c("logBodyMass","logAllGeogRange")]
@@ -94,82 +93,65 @@ source(paste(gitpath,"BrazilSourceFunctions.R",sep=""))
   
   #Broadcast to all other nodes, can this be run in one command?
   #Option 1, pack them into a list and unlist them on each node
-  #dataExport<-list(siteXspp,tree,splist,traits,tcellbr)
+  dataExport<-list(siteXspp,tree,splist,traits,tcellbr)
   
-#} #else {
-  #dataExport<-NULL
-#}
+} else {
+  dataExport<-NULL
+}
 
 #broadcast to all files
-#bcast(dataExport)
+dataExport<-bcast(dataExport)
 
-#sink output for overnight runs so we can see it tomorrow
-#sink("")
 
 ########################################
 ###############Read in data on the node
 ########################################
 # 
 # #Seperate and name the objects that were broadcast from the rank 0 node.
-# siteXspp<-dataExport[[1]]
-# tree<-dataExport[[2]]
-# splist<-dataExport[[3]]
-# traits<-dataExport[[4]]
-# tcellbr<-dataExport[[5]]
-# #list loaded packages
+siteXspp<-dataExport[[1]]
+tree<-dataExport[[2]]
+splist<-dataExport[[3]]
+traits<-dataExport[[4]]
+tcellbr<-dataExport[[5]]
+
+#list loaded packages
 # (.packages())
-# 
+ 
+
 
 #Do we want to subset the data for a test case? 
 #If so, add which rows below
-comm<-siteXspp[1:10,]
+comm<-siteXspp[,]
 
 #####################################################
 ##############Compute Betadiversity##################
 #####################################################
 
-#betaPar takes in three arguments, the siteXspp matrix, the rank number of the node, and the number of chunks
-#Until we can get on the cluster the 2nd argument will be 1 for testing
-#rank<-comm.rank
-#system.time(beta_out<-betaPar(siteXspp,rank,2))
+comm.print(paste("Total nodes is:", comm.size()))
 
+.rank<-comm.rank() + 1
+timeF<-system.time(beta_out<-betaPar(comm,rankNumber=.rank,chunks=comm.size(),phylosor.c=FALSE,beta.sim=TRUE))
 
-timeF<-system.time(beta_out<-betaPar(comm,rankNumber=1,chunks=2,phylosor.c=FALSE,beta.sim=TRUE))
-timeF
-
-
-timeF<-system.time(beta_out<-betaPar(comm,rankNumber=1,chunks=2,phylosor.c=TRUE,beta.sim=TRUE))
-timeF
 
 #Test alterantive methods
 #benchmark the two approaches across 10 runs.
-require(rbenchmark)
-a<-benchmark(replications=1,
-          betaPar(comm,1,2,beta.sim=TRUE,phylosor.c=FALSE),
-          betaPar(comm,1,2,beta.sim=FALSE,phylosor.c=TRUE))
+#require(rbenchmark)
+#a<-benchmark(replications=1,
+          #betaPar(comm,1,2,beta.sim=TRUE,phylosor.c=FALSE),
+          #betaPar(comm,1,2,beta.sim=FALSE,phylosor.c=TRUE))
 
 #Correlation among dimensions
 ggpairs(beta_out[,-c(1,2)],cor=TRUE)
 
-
-
 #Return timing argument to console
 print(timeF)
 
-#Gather all to comm Rank 0 and write to file? cast into giant dataframe?
+#try writing from all
+comm.write.table(beta_out,"beta_out.csv")
 
-if (comm.rank()==0){ # only read on process 0
-  
-  #######Gather from all runs#########
-  beta_gather<-gather()
-  all_out<-rbind.fill.matrix(beta_gather)
-  write.csv(data.df,paste(droppath,"FinalData.csv",sep=""))
-} else {
-  x<-NULL
-}
+finalize()
 
 #Data Generation Complete
 ##########################################################################################
 ##########################################################################################
 
-finalize()
