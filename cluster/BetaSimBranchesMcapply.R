@@ -1,6 +1,5 @@
 #Define Function
 
-require(parallel)
 require(picante,quietly=TRUE)
 require(foreach,quietly=TRUE)
 require(doSNOW,quietly=TRUE)
@@ -34,12 +33,12 @@ tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
 #remove species in the siteXspp that are not in phylogeny
 siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
 
+print(dim(siteXspp))
 
-#Define Beta Function
 matpsim <- function(phyl, com) # make sure nodes are labelled and that com and phyl species match
 {
   
-  # detail information for all phylo branches
+  require(phylobase)  # detail information for all phylo branches
   new <- phylo4(phyl)
   dat <- as.data.frame(print(new))
   allbr <- dat$edge.length
@@ -47,14 +46,15 @@ matpsim <- function(phyl, com) # make sure nodes are labelled and that com and p
   spp <- colnames(com)
 
   
+  cl <- getMPIcluster() # create parellel clusters
+  registerDoSNOW(cl)
+  
   # create a list of phy branches for each species
-
-  brs <-  mclapply(spp,function(i){ #this loop makes a list of branches for each species 
-print(i) 	
-
- 
-#print(which(spp == i)/length(spp))
-  #print(date())
+  
+  brs <-  foreach(i = spp, .packages = "phylobase") %dopar% #this loop makes a list of branches for each species
+{  
+  print(which(spp == i)/length(spp))
+  print(date())
   brsp <- vector()
   br   <- as.numeric(rownames(dat[which(dat$label==i),]))
   repeat{
@@ -66,21 +66,11 @@ print(i)
     if(br == 0) {break}
   }
   
-  return(brsp)
-})
-
-print(dim(brs))
-print(length(brs))
-print(length(spp))
-
-print(head(spp))
-print(head(brs))
-print(names(brs))
-print(spp)
-  #names(brs) <- spp
+  brsp
+}
+  names(brs) <- spp
   
-
-
+    
   print("brs")
   
   # create a species by phy branch matrix
@@ -113,19 +103,24 @@ print(spp)
     return(i_br)
   }
   
-
-  tcellbr <- mclapply(rownames(com),function(j){cellbr(j,spp_br,com)})
- 
-  tcellbr <- do.call("rbind", tcellbr)
-
+    
+  tcellbr <- foreach(j = rownames(com), .combine = "rbind") %dopar% {cellbr(j,spp_br,com)}
+  
   print("cell_br")
   rownames(tcellbr) <- rownames(com)
   tcellbr <<- tcellbr
- return(tcellbr) 
- }
+
+}
 
 #compute
 tcellbr<-matpsim(phyl=tree,com=siteXspp)
 
+print("function computed")
+print(dim(tcellbr))
+
+
 #Write to file
-save(tcellbr,"Input/tcellbr.Rdata")
+save(tcellbr,file="Input/tcellbr.RData")
+
+print("imaged")
+

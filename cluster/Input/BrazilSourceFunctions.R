@@ -297,13 +297,13 @@ betaPar<-function(comm,rankNumber,chunks,beta.sim,phylosor.c,tcellbr=tcellbr){
   #Create all pairwise combinations of siteXspp
   z<-combn(nrow(comm),2)
   
-  print(paste("Total number of iterations:",ncol(z)))
+  #print(paste("Total number of iterations:",ncol(z)))
   
   #split rows into indices, we want each loop to take about an hour, 
   #THe function is initially timed at 20 seconds, 
   IndexFunction<-splitIndices(ncol(z),chunks)
   
-print(paste("Length of IndexFunction is:",length(IndexFunction)))
+#print(paste("Length of IndexFunction is:",length(IndexFunction)))
 
   ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
   Index_Space<-z[,IndexFunction[[rankNumber]]]
@@ -316,7 +316,7 @@ print(paste("Number of within loop calls:", ncol(Index_Space)))
 
   #Within a chunk, loop through the indexes and compute betadiversity
   for (x in 1:ncol(Index_Space)){
-    print(x)
+    #print(x)
     #Grab the correct index
     index_col<-Index_Space[,x] 
     
