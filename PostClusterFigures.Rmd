@@ -19,9 +19,7 @@ dat5<-read.table(paste(droppath,"Dimensions/Data/Brazil/beta_out.csv",sep="/"),n
 
 classes <- sapply(dat5, class)
 
-#don't read the first two columns
-classes[c(1,2)]<-NA
-dat<-read.table(paste(droppath,"Dimensions/Data/Brazil/beta_out.csv",sep="/"),colClasses=classes,row.names=NULL)
+dat<-read.table(paste(droppath,"Dimensions/Data/Brazil/beta_out.csv",sep="/"),row.names=NULL)
 ```
 
 Plot a small fraction of the pairs
