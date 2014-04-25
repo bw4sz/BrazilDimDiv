@@ -58,20 +58,20 @@ comm.index<-indexS[[.rank]]
 
 #loop through each in the index
 
-meanC<-sapply(comm.index,function(x){
+meanC<-lapply(comm.index,function(x){
   
   #find cell value
   target<-cells[x]
   
   #find mean
   cellX<-dat[dat$To %in% target | dat$From %in% target,]
-  meanCell<-sapply(cellX[,c("Sorenson","BetaSim","MNTD")],mean,na.rm=TRUE)
-  
+  meanCell<-t(sapply(cellX[,c("Sorenson","BetaSim","MNTD")],mean,na.rm=TRUE))
+  return(data.frame(cbind(Cell=target,meanCell)))
 })
 
-colnames(meanC)<-cells[comm.index]
+meanCelltable<-rbind.fill(meanC)
 
-comm.write.table(meanC,"meanCelltable.csv",row.names=FALSE)
+comm.write.table(meanCelltable,"meanCelltable.csv")
 
 ##############################################
 #Compute quantile for each combination of cells
