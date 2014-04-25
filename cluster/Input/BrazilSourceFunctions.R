@@ -155,7 +155,6 @@ nmatsim <- function(cell_b,cell_a) # samp = grid cell of interest
 }
 
 
-
 # function to give the pres/abs of phy branches withi cell i, broken out from original function
 cellbr <- function(i,spp_br, com)
 {
@@ -325,7 +324,7 @@ print(paste("Number of within loop calls:", ncol(Index_Space)))
     
     #if the rows are identical, betadiversity is 0
     if(sum(!comm.d[1,]==comm.d[2,])==0){
-      holder[[x]]<-data.frame(To=index_col[[1]],From=index_col[[2]],BetaSim=0,Sorenson=0,MNTD=0)
+      holder[[x]]<-data.frame(To=rownames(comm.d)[[1]],From=rownames(comm.d)[[2]],BetaSim=0,Sorenson=0,MNTD=0)
     } else{
       
       #compute beta metrics
