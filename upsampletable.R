@@ -5,10 +5,9 @@ require(foreach)
 require(doSNOW)
 
 ##read in data
-
 droppath<-"C:/Users/Jorge/Dropbox"
 
-siteXspp<-read.csv(paste(droppath,"Dimensions Data/siteXspp.csv",sep="/"),nrow=1000)
+siteXspp<-read.csv(paste(droppath,"Dimensions Data/siteXspp.csv",sep="/"))
 
 #create a molleweide raster with the desired resolution
 a<-raster()
@@ -31,7 +30,7 @@ uC<-unique(cellnumber)
 
 #Combine columns with same cells
 #walk through each cell
-cl<-makeCluster(4,"SOCK")
+cl<-makeCluster(5,"SOCK")
 registerDoSNOW(cl)
 newsiteXspp<-foreach(x=1:length(uC),.packages="raster") %dopar% {
   target<-uC[x]
@@ -58,8 +57,11 @@ newsiteXsppdf<-rbind.fill(newsiteXspp)
 #visualize richness to check accuracy
 cellnumberR<-cellFromXY(a.proj,cbind(newsiteXsppdf$x,y=newsiteXsppdf$y))
 
-richness<-apply(newsiteXsppdf,1,sum)
+richness<-apply(newsiteXsppdf[,-c(1,2)],1,sum)
 
 a.proj[cellnumberR]<-richness
 
 plot(a.proj)
+
+#write table to file
+write.csv(paste(droppath,"Dimensions Data/siteXspp1degree.csv"))

@@ -2,3 +2,4 @@
 .Rhistory
 .RData
 cluster/Input/ninexdat.csv
+cluster/beta_out.csv
