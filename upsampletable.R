@@ -64,4 +64,4 @@ a.proj[cellnumberR]<-richness
 plot(a.proj)
 
 #write table to file
-write.csv(paste(droppath,"Dimensions Data/siteXspp1degree.csv"))
+write.csv(newsiteXsppdf,paste(droppath,"Dimensions Data/siteXspp1degree.csv"))
