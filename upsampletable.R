@@ -3,11 +3,17 @@
 require(reshape)
 require(foreach)
 require(doSNOW)
+require(raster)
+require(data.table)
 
 ##read in data
 droppath<-"C:/Users/Jorge/Dropbox"
 
-siteXspp<-read.csv(paste(droppath,"Dimensions Data/siteXspp.csv",sep="/"))
+siteXspp<-fread(paste(droppath,"Dimensions Data/siteXspp.csv",sep="/"),nrow=35000)
+
+#set the data table as a key
+setnames(siteXspp,"V1","XY")
+setkey(siteXspp,XY)
 
 #create a molleweide raster with the desired resolution
 a<-raster()
@@ -16,52 +22,46 @@ res(a)<-1
 #project raster
 a.proj<-projectRaster(a,crs="+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +units=m +no_defs")
 
-#Get XY coordinates
-XY<-colsplit(siteXspp$X," ",c("X","Y"))
+#Get XY coordinates for the XY position
+XY<-colsplit(siteXspp$XY," ",c("X","Y"))
 
 #get the cell number from the projected raster
 cellnumber<-cellFromXY(a.proj,XY)
 
-#create an index of XY to cell number
-sp.index<-data.frame(XY=siteXspp$X,cellnumber)
+#create an index of XY to cell number in old and new table
+sp.index<-data.frame(XY=siteXspp$XY,cellnumber)
 
-#get a list of unique cell numbers
-uC<-unique(cellnumber)
+#make into a new data.table
+sp.indexdt<-data.table(sp.index)
+setkey(sp.indexdt,"XY")
 
-#Combine columns with same cells
-#walk through each cell
-cl<-makeCluster(5,"SOCK")
-registerDoSNOW(cl)
-newsiteXspp<-foreach(x=1:length(uC),.packages="raster") %dopar% {
-  target<-uC[x]
-  
-  #get all the XY coords that fall in that cell
-  targetXY<-sp.index[sp.index$cellnumber %in% target,"XY"]
-  
-  #get all the rows in the Xy targets
-  tocombine<-siteXspp[siteXspp$X %in% targetXY,]
-  
-  #merge target rows
-  combrow<-(apply(tocombine[,-1],2,sum) > 0)*1
-  
-  #get the centroid of the new cell
-  newC<-xyFromCell(a.proj,target)
-  out<-data.frame(cbind(XY=newC,t(as.matrix(combrow))))
-  return(out)
-}
-stopCluster(cl)
+#bind the new cellnumbers to the old matrix
+siteXsppM<-merge(sp.indexdt,siteXspp)
 
-#Bind together
-newsiteXsppdf<-rbind.fill(newsiteXspp)
+tables()
 
-#visualize richness to check accuracy
-cellnumberR<-cellFromXY(a.proj,cbind(newsiteXsppdf$x,y=newsiteXsppdf$y))
+foo<-function(x){
+  (sum(x) >= 1)*1
+} 
 
-richness<-apply(newsiteXsppdf[,-c(1,2)],1,sum)
+#aggregate by cellnumber on the new merged data.table
+siteXsppSUM<-siteXsppM[,lapply(.SD,foo),by=cellnumber,.SDcols = colnames(siteXsppM)[!colnames(siteXsppM) %in% c("cellnumber","XY")]]
 
-a.proj[cellnumberR]<-richness
+#get the centroid of the new cell
+siteXspp_new<-cbind(siteXsppSUM,xyFromCell(a.proj,siteXsppSUM$cellnumber))
+
+##I'm testing this out, taking this section out. 
+#test <- colnames(siteXspp)
+#test2 <- gsub('[.]','_',test)
+#setnames(siteXspp,colnames(siteXspp),test2)
+
+
+substructure<-siteXspp_new[,!colnames(siteXspp_new) %in% c("cellnumber","x","y"),with=F]
+richness<-apply(substructure,1,sum)
+
+a.proj[siteXspp_new$cellnumber]<-richness
 
 plot(a.proj)
 
 #write table to file
-write.csv(newsiteXsppdf,paste(droppath,"Dimensions Data/siteXspp1degree.csv"))
+write.csv(siteXspp_new,paste(droppath,"Dimensions Data/siteXspp1degree.csv",sep="/"))
