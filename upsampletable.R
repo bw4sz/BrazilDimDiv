@@ -3,6 +3,7 @@
 require(reshape)
 require(foreach)
 require(doSNOW)
+require(raster)
 
 ##read in data
 droppath<-"C:/Users/Jorge/Dropbox"
