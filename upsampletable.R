@@ -9,6 +9,9 @@ require(raster)
 droppath<-"C:/Users/Jorge/Dropbox"
 
 siteXspp<-read.csv(paste(droppath,"Dimensions Data/siteXspp.csv",sep="/"))
+test <- colnames(siteXspp)
+test2 <- gsub('[.]','_',test)
+colnames(siteXspp) <- test2
 
 #create a molleweide raster with the desired resolution
 a<-raster()
