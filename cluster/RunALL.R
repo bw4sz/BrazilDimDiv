@@ -17,15 +17,16 @@ require(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
 
 init()
 
-require(reshape,quietly=TRUE,warn.conflicts=FALSE)
-require(picante,quietly=TRUE,warn.conflicts=FALSE)
-require(ggplot2,quietly=TRUE,warn.conflicts=FALSE)
-require(parallel,quietly=TRUE,warn.conflicts=FALSE)
-require(foreach,quietly=TRUE,warn.conflicts=FALSE)
-require(GGally,quietly=TRUE,warn.conflicts=FALSE)
+#Require libraries, i hate the messages
+suppressMessages(require(reshape,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(ggplot2,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(parallel,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(foreach,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(GGally,quietly=TRUE,warn.conflicts=FALSE))
 
 #Everyone say hello
-comm.print(comm.rank(), all.rank = TRUE)
+#comm.print(comm.rank(), all.rank = TRUE)
 
 ##If running locally set droppath
 
@@ -35,87 +36,57 @@ setwd(droppath)
 
 ###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
 
-source("Input/BrazilSourceFunctions.R")
-
-#Read in data on the first file
-
-if (comm.rank()==0){ # only read on process 0
-  ################
-  if(testing==FALSE){
-  #Read in species matrix
-  siteXspp <- read.csv("Input/siteXspp1dgr.csv")
-  
-  #xytable
-xytable<-data.frame(rownames(siteXspp),siteXspp$x,siteXspp$y)
-
-  #Just get the species data, starts on column 33 for this example
-  siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich")]
-
-  #Remove lines with less than 2 species
-  richness<-apply(siteXspp,1,sum)
-  keep<-which(richness > 1)
-  siteXspp<-siteXspp[keep,]
-  
-  #Get entire species list
-  splist<-colnames(siteXspp)
-  
-  #Read in phylogeny
-  tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
-  
-  #Read in cell by branch table made from source
-  load(file="Input/tcellbr.RData")
-  
-  #remove species in the siteXspp that are not in phylogeny
-  siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
-  
-  #bring in traits
-  traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
-  
-head(traits)
-  #just get a complete dataset
-  traits<-traits[complete.cases(traits),]
-  }
-  
-  #Testing data
-  if(testing==TRUE)    {
-    #Dummy phylogeny, siteXspp and traits from phylocom picante package
-    data(phylocom)
-    tree<-phylocom$phylo
-    comm<-phylocom$sample
-    traits<-phylocom$traits
-    print("Testing Data Loaded")
-  }
-   
-  ####Data Load Complete####
-  #compute cell by branch relationship for all cells for ben holt's function
-  
-  #Broadcast to all other nodes, can this be run in one command?
-  #Option 1, pack them into a list and unlist them on each node
-  dataExport<-list(siteXspp,tree,splist,traits,tcellbr,xytable)
-  
-} else {
-  dataExport<-NULL
-}
-
-#broadcast to all files
-dataExport<-bcast(dataExport)
+suppressMessages(source("Input/BrazilSourceFunctions.R"))
 
 
 ########################################
 ###############Read in data on the node
 ########################################
-# 
-# #Seperate and name the objects that were broadcast from the rank 0 node.
-siteXspp<-dataExport[[1]]
-tree<-dataExport[[2]]
-splist<-dataExport[[3]]
-traits<-dataExport[[4]]
-tcellbr<-dataExport[[5]]
-xytable<-dataExport[[6]]
 
-#list loaded packages
-# (.packages())
+#read in all same ranks
+#siteXspp <- comm.read.csv("Input/siteXspp1dgr.csv",read.method="common")
+
+##barrier method
+print("barrier method start")
+for(i.rank in 0:(comm.size() - 1)){
+  if(i.rank == comm.rank()){
+    	
+	siteXspp <- read.csv("Input/siteXspp1dgr.csv",row.names=1)    # as usual R read.table
+	
+	print(paste(comm.rank(),"loaded"))
+  	
+	#Read in phylogeny
+  	tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
+  
  
+  	#bring in traits
+  	traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
+  
+	print(head(traits))
+	print(dim(traits))
+
+  #Read in cell by branch table made from source
+ 	load(file="Input/tcellbr.RData")
+  	print("read in tcellbr.RData")
+  }
+  barrier()
+}
+
+print("data loaded!")
+
+  #Remove xy data
+  siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich")]
+  
+#Remove lines with less than 2 species
+  richness<-apply(siteXspp,1,sum)
+  keep<-which(richness > 1)
+  siteXspp<-siteXspp[keep,]
+  #Get entire species list
+  splist<-colnames(siteXspp)
+
+#remove species in the siteXspp that are not in phylogeny
+siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
+print(dim(siteXspp))
 
 #Do we want to subset the data for a test case? 
 #If so, add which rows below
