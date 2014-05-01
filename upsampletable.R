@@ -51,10 +51,9 @@ siteXsppSUM<-siteXsppM[,lapply(.SD,foo),by=cellnumber,.SDcols = colnames(siteXsp
 siteXspp_new<-cbind(siteXsppSUM,xyFromCell(a.proj,siteXsppSUM$cellnumber))
 
 ##I'm testing this out, taking this section out. 
-#test <- colnames(siteXspp)
-#test2 <- gsub('[.]','_',test)
-#setnames(siteXspp,colnames(siteXspp),test2)
-
+test <- colnames(siteXspp_new)
+test2 <- gsub(' ','_',test)
+setnames(siteXspp_new,colnames(siteXspp_new),test2)
 
 substructure<-siteXspp_new[,!colnames(siteXspp_new) %in% c("cellnumber","x","y"),with=F]
 richness<-apply(substructure,1,sum)

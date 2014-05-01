@@ -1,10 +1,10 @@
 #Compute average betadiversity for each cell, both in terms of mean value and quantiles for each pair. 
 
-require(pbdMPI)
+require(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
 
 init()
-require(parallel)
-require(reshape2)
+require(parallel,quietly=TRUE,warn.conflicts=FALSE)
+require(reshape,quietly=TRUE,warn.conflicts=FALSE)
 
 #read in data
 
@@ -19,10 +19,14 @@ droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 if(.rank==0){
 
 #read in beta file from the cluster
-dat5<-read.table(paste(droppath,"beta_out.csv",sep="/"),nrows=5)
+dat5<-read.table(paste(droppath,"beta_out.csv",sep="/"),nrows=5,row.names=NULL)
 classes <- sapply(dat5, class)
 
-dat<-read.table(paste(droppath,"beta_out.csv",sep="/"),colClasses=classes,row.names=NULL)
+print(classes)
+
+dat<-read.table(paste(droppath,"beta_out.csv",sep="/"),row.names=NULL)
+
+print(head(dat))
 
 #create a list of all unique cells from both columns
 uniA<-unique(dat$To)
@@ -54,9 +58,10 @@ rm(tobcast)
 indexS<-splitIndices(length(cells),.size)
 
 #have the cluster pull in space based on ranknumber
-comm.index<-indexS[[.rank]]
+comm.index<-indexS[[.rank+1]]
 
 #loop through each in the index
+
 
 meanC<-lapply(comm.index,function(x){
   
@@ -71,7 +76,27 @@ meanC<-lapply(comm.index,function(x){
 
 meanCelltable<-rbind.fill(meanC)
 
-comm.write.table(meanCelltable,"meanCelltable.csv")
+comm.write.table(meanCelltable,"meanCelltable.txt")
+
+#########################################
+#Compute standard deviation of each cell
+#########################################
+
+meanC<-lapply(comm.index,function(x){
+  
+  #find cell value
+  target<-cells[x]
+  
+  #find mean
+  cellX<-dat[dat$To %in% target | dat$From %in% target,]
+  meanCell<-t(sapply(cellX[,c("Sorenson","BetaSim","MNTD")],sd,na.rm=TRUE))
+  return(data.frame(cbind(Cell=target,meanCell)))
+})
+
+meanCelltable<-rbind.fill(meanC)
+
+comm.write.table(meanCelltable,"meanCelltable.txt")
+
 
 ##############################################
 #Compute quantile for each combination of cells
@@ -82,7 +107,7 @@ comm.write.table(meanCelltable,"meanCelltable.csv")
 indexAll<-splitIndices(nrow(dat),.size)
 
 #have the cluster pull in based on rank number
-comm.indexAll<-indexAll[[.rank]]
+comm.indexAll<-indexAll[[.rank+1]]
 
 ecTrait<-ecdf(dat$MNTD)
 ecPhylo<-ecdf(dat$BetaSim)
@@ -98,7 +123,7 @@ quantframe<-lapply(comm.indexAll,function(x){
 
 beta_quantiles<-rbind.fill(quantframe)
 
-comm.write.table(meanC,"beta_quantiles.csv",row.names=FALSE)
+comm.write.table(beta_quantiles,"beta_quantiles.txt",row.names=FALSE)
 
 finalize()
 

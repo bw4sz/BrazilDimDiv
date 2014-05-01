@@ -13,16 +13,16 @@ testing<-FALSE
 
 ##################
 
-require(pbdMPI,quietly=TRUE)
+require(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
 
 init()
 
-require(reshape,quietly=TRUE)
-require(picante,quietly=TRUE)
-require(ggplot2,quietly=TRUE)
-require(parallel,quietly=TRUE)
-require(foreach,quietly=TRUE)
-require(GGally,quietly=TRUE)
+require(reshape,quietly=TRUE,warn.conflicts=FALSE)
+require(picante,quietly=TRUE,warn.conflicts=FALSE)
+require(ggplot2,quietly=TRUE,warn.conflicts=FALSE)
+require(parallel,quietly=TRUE,warn.conflicts=FALSE)
+require(foreach,quietly=TRUE,warn.conflicts=FALSE)
+require(GGally,quietly=TRUE,warn.conflicts=FALSE)
 
 #Everyone say hello
 comm.print(comm.rank(), all.rank = TRUE)
@@ -43,14 +43,17 @@ if (comm.rank()==0){ # only read on process 0
   ################
   if(testing==FALSE){
   #Read in species matrix
-  siteXspp <- read.csv("Input/ninexdat.csv")
+  siteXspp <- read.csv("Input/siteXspp1dgr.csv")
   
+  #xytable
+xytable<-data.frame(rownames(siteXspp),siteXspp$x,siteXspp$y)
+
   #Just get the species data, starts on column 33 for this example
-  siteXspp<-siteXspp[,33:ncol(siteXspp)]
-  
+  siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich")]
+
   #Remove lines with less than 2 species
   richness<-apply(siteXspp,1,sum)
-  keep<-which(richness > 2)
+  keep<-which(richness > 1)
   siteXspp<-siteXspp[keep,]
   
   #Get entire species list
@@ -60,20 +63,15 @@ if (comm.rank()==0){ # only read on process 0
   tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
   
   #Read in cell by branch table made from source
-  #source(paste(gitpath,"parallelphylomatrix.R"))
   load(file="Input/tcellbr.RData")
   
   #remove species in the siteXspp that are not in phylogeny
   siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
   
   #bring in traits
-  traits.o <- read.table("Input/All_Mammal_Data-9-6-13.txt",header=TRUE)
+  traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
   
-  #Which traits do we want, just body mass and range size for now.
-  traits<-traits.o[,colnames(traits.o) %in% c("logBodyMass","logAllGeogRange")]
-  
-  rownames(traits)<-traits.o$IUCN.binomial
-  
+head(traits)
   #just get a complete dataset
   traits<-traits[complete.cases(traits),]
   }
@@ -93,7 +91,7 @@ if (comm.rank()==0){ # only read on process 0
   
   #Broadcast to all other nodes, can this be run in one command?
   #Option 1, pack them into a list and unlist them on each node
-  dataExport<-list(siteXspp,tree,splist,traits,tcellbr)
+  dataExport<-list(siteXspp,tree,splist,traits,tcellbr,xytable)
   
 } else {
   dataExport<-NULL
@@ -113,15 +111,15 @@ tree<-dataExport[[2]]
 splist<-dataExport[[3]]
 traits<-dataExport[[4]]
 tcellbr<-dataExport[[5]]
+xytable<-dataExport[[6]]
 
 #list loaded packages
 # (.packages())
  
 
-
 #Do we want to subset the data for a test case? 
 #If so, add which rows below
-comm<-siteXspp[,]
+comm<-siteXspp[1:1000,]
 
 #####################################################
 ##############Compute Betadiversity##################
@@ -132,6 +130,8 @@ comm.print(paste("Total nodes is:", comm.size()))
 .rank<-comm.rank() + 1
 timeF<-system.time(beta_out<-betaPar(comm,rankNumber=.rank,chunks=comm.size(),phylosor.c=FALSE,beta.sim=TRUE))
 
+#combine rownames with xycoordinates
+
 
 #Test alterantive methods
 #benchmark the two approaches across 10 runs.
@@ -141,7 +141,7 @@ timeF<-system.time(beta_out<-betaPar(comm,rankNumber=.rank,chunks=comm.size(),ph
           #betaPar(comm,1,2,beta.sim=FALSE,phylosor.c=TRUE))
 
 #Correlation among dimensions
-ggpairs(beta_out[,-c(1,2)],cor=TRUE)
+#ggpairs(beta_out[,-c(1,2)],cor=TRUE)
 
 #Return timing argument to console
 print(timeF)

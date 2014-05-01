@@ -1,0 +1,14 @@
+TACC: Starting up job 3247611
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+  row.names          To        From     BetaSim    Sorenson        MNTD 
+"character"   "integer"   "integer"   "integer"   "numeric"   "numeric" 
+  row.names To From BetaSim  Sorenson     MNTD
+1         1  1    2       0 0.0000000 0.000000
+2         2  1    3       0 0.0000000 0.000000
+3         3  1    4       0 0.0000000 0.000000
+4         1  1    5       0 0.0000000 0.000000
+5         2  1    6       0 0.4285714 1.958225
+6         1  1    7       0 0.0000000 0.000000
+ 
+TACC: Shutdown complete. Exiting.

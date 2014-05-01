@@ -1,0 +1,107 @@
+TACC: Starting up job 3247611
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+COMM.RANK = 0
+[1] 0
+COMM.RANK = 1
+[1] 1
+COMM.RANK = 2
+[1] 2
+COMM.RANK = 3
+[1] 3
+COMM.RANK = 4
+[1] 4
+COMM.RANK = 5
+[1] 5
+COMM.RANK = 6
+[1] 6
+COMM.RANK = 7
+[1] 7
+COMM.RANK = 8
+[1] 8
+COMM.RANK = 9
+[1] 9
+COMM.RANK = 10
+[1] 10
+COMM.RANK = 11
+[1] 11
+COMM.RANK = 12
+[1] 12
+COMM.RANK = 13
+[1] 13
+COMM.RANK = 14
+[1] 14
+COMM.RANK = 15
+[1] 15
+COMM.RANK = 16
+[1] 16
+COMM.RANK = 17
+[1] 17
+COMM.RANK = 18
+[1] 18
+COMM.RANK = 19
+[1] 19
+COMM.RANK = 0
+[1] "Total nodes is: 20"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 3"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 3"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 3"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 3"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 3"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+[1] "Number of within loop calls: 2"
+   user  system elapsed 
+  0.736   0.014   0.751 
+   user  system elapsed 
+  0.755   0.013   0.768 
+   user  system elapsed 
+  0.728   0.015   0.743 
+   user  system elapsed 
+  0.740   0.018   0.773 
+   user  system elapsed 
+  0.877   0.010   0.903 
+   user  system elapsed 
+  0.950   0.006   0.998 
+   user  system elapsed 
+  0.898   0.010   0.946 
+   user  system elapsed 
+  1.093   0.000   1.092 
+   user  system elapsed 
+  0.862   0.009   1.118 
+   user  system elapsed 
+  0.854   0.010   1.118 
+   user  system elapsed 
+  0.868   0.017   1.089 
+   user  system elapsed 
+  0.905   0.025   1.228 
+   user  system elapsed 
+  1.222   0.016   1.263 
+   user  system elapsed 
+  1.256   0.015   1.330 
+   user  system elapsed 
+  0.885   0.018   1.509 
+   user  system elapsed 
+  0.919   0.015   1.494 
+   user  system elapsed 
+  0.929   0.013   1.537 
+   user  system elapsed 
+  0.976   0.015   1.620 
+   user  system elapsed 
+  1.311   0.018   1.930 
+   user  system elapsed 
+  1.356   0.018   1.938 
+ 
+TACC: Shutdown complete. Exiting.

@@ -1,9 +1,9 @@
 #Define Function
 
-require(picante,quietly=TRUE)
-require(foreach,quietly=TRUE)
-require(doSNOW,quietly=TRUE)
-require(phylobase,quietly=TRUE)
+require(picante,quietly=TRUE,warn.conflicts=FALSE)
+require(foreach,quietly=TRUE,warn.conflicts=FALSE)
+require(doSNOW,quietly=TRUE,warn.conflicts=FALSE)
+require(phylobase,quietly=TRUE,warn.conflicts=FALSE)
 
 #Set dropbox path
 
@@ -14,14 +14,16 @@ setwd(droppath)
 ####Read in data
 #Read in species matrix
 
-siteXspp <- read.csv("Input/ninexdat.csv")
+siteXspp <- read.csv("Input/siteXspp1dgr.csv")
 
 #Just get the species data, starts on column 33 for this example
-siteXspp<-siteXspp[,33:ncol(siteXspp)]
+siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich")]
+
+#Just get the species data, starts on column 33 for this example
 
 #Remove lines with less than 2 species
 richness<-apply(siteXspp,1,sum)
-keep<-which(richness > 2)
+keep<-which(richness > 1)
 siteXspp<-siteXspp[keep,]
 
 #Get entire species list
