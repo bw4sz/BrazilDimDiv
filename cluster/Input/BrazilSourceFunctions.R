@@ -40,77 +40,6 @@ MNND <- function(A,B,sp.list,dists)
 
 ##Ben Holt's matrix phylo betadiversity function, let's break this into pieces, so its not-redundant on each call
 
-#Function gets the edge matrix for all nodes, takes awhile
-phylMatrix<-function(phyl, com, clust = 7){
-    # detail information for all phylo branches
-  new <- phylo4(phyl)
-  dat <- as.data.frame(print(new))
-  allbr <- dat$edge.length
-  names(allbr) <- getEdge(new)
-  spp <- colnames(com)
-  
-  cl <- makeCluster(clust) # create parellel clusters
-  registerDoSNOW(cl)
-  
-  # create a list of phy branches for each species
-  
-  brs <-  foreach(i = spp, .packages = "phylobase") %dopar% #this loop makes a list of branches for each species
-{  
-  print(which(spp == i)/length(spp))
-  print(date())
-  brsp <- vector()
-  br   <- as.numeric(rownames(dat[which(dat$label==i),]))
-  repeat{
-    brsn <- getEdge(new,br)
-    brsl <- dat[names(brsn),"edge.length"]
-    names(brsl) <- brsn
-    brsp <- c(brsp, brsl)
-    br   <- dat[br,3]
-    if(br == 0) {break}
-  }
-  
-  brsp
-}
-  names(brs) <- spp
-  stopCluster(cl)
-  
-  
-  print("brs")
-  
-  # create a species by phy branch matrix
-  
-  spp_br <- matrix(0,nrow = length(spp), ncol = length(allbr))
-  rownames(spp_br) <- spp
-  colnames(spp_br) <- names(allbr)
-  
-  for(i in spp)
-  {
-    spp_br[i,names(brs[[i]])] <- brs[[i]]
-  }
-  
-  spp_br <- spp_br[,-(ncol(com)+1)] # removes root
-  spp_br <- spp_br[,!colSums(spp_br) %in% c(0,nrow(spp_br))]  # here take out all common branches instead
-  
-  print("spp_br")
-  
-  spp_br <<- spp_br
-  
-  return(spp_br)
-}
-
-# function to give the pres/abs of phy branches withi cell i
-
-cellbr <- function(i,spp_br, com)
-{
-  i_spp <- rownames(spp_br)[com[i,]>0]
-  if(length(i_spp) > 1)
-  {i_br  <- as.numeric(apply(spp_br[i_spp,],2,max))}
-  else  {i_br  <- as.numeric(spp_br[i_spp,]) }
-  names(i_br) <- colnames(spp_br)
-  return(i_br)
-}
-
-#create a species by phy branch matrix, broken out from original function
 
 matpsim <- function(com,tcellbr) # make sure nodes are labelled and that com and phyl species match
 {
@@ -140,6 +69,7 @@ matpsim <- function(com,tcellbr) # make sure nodes are labelled and that com and
 
 nmatsim <- function(cell_b,cell_a,tcellbr) # samp = grid cell of interest
 {
+
   a_br  <- tcellbr[cell_a,]
   b_br <- tcellbr[cell_b,]
   s_br <- rbind(a_br,b_br)
@@ -176,7 +106,7 @@ cellbr <- function(i,spp_br, com)
 
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
-beta_all<-function(comm=comm,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr){
+beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr){
   
   
   if(sum(comm)==0){return(NA)}
@@ -191,39 +121,22 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr
   sorenson<-melt(d)[melt(upper.tri(d))$value,]
   colnames(sorenson)<-c("To","From","Sorenson")
   ######################################
-  
-  if(phylosor.c){
-    print("computing phylosor")
-    ######################################
-    #Phylogenetic Betadiversity
-    
-    #Phylosor Calculation see Bryant 2008
-    phylo.matrix<-as.matrix(phylosor(comm,tree))
-    diag(phylo.matrix)<-NA
-    Phylosor.phylo<-melt(phylo.matrix)
-    colnames(Phylosor.phylo)<-c("To","From","Phylosor.Phylo")
-    Phylosor.phylo$Phylosor.Phylo<-1-Phylosor.phylo$Phylosor.Phylo
-    Allmetrics0<-merge(Phylosor.phylo,sorenson,by=c("To","From"))
-  }
-  #######################################
-  
+   
   ######Phylogenetic Betadiversity
   #Betasim from Holt 2013
   
-  ###Phylosor is really slow from the PD function, try ben holt's betasim
   #I broke this into seperate functions since it doesn't need to happen on each cell
   
   #From the initial rank 0 i computed the branching matrix and stored it as branch.out
-  if(beta.sim){
-
+  
     #Compute cell matrix and melt it into a dataframe 
-    betaSIM<-nmatsim(as.numeric(rownames(comm)[1]),as.numeric(rownames(comm)[2]),tcellbr)
+    betaSIM<-nmatsim(cell_a=rownames(comm)[1],cell_b=rownames(comm)[2],tcellbr)
     pmatSum<-data.frame(rownames(comm)[1],rownames(comm)[2],betaSIM)
     colnames(pmatSum)<-c("To","From","BetaSim")
     
     #Merge with taxonomic
     Allmetrics0<-merge(pmatSum,sorenson,by=c("To","From"))
-  }
+  
   
   #Trait frame needs to match siteXSpp table
   mon_cut<-traits[rownames(traits) %in% colnames(comm),]
@@ -283,26 +196,32 @@ mon_cut<-mon_cut[,colvar]
 #Wrapper function!
 
 
-betaPar.scatter<-function(toScatterMatrix,toScatterIndex,beta.sim,phylosor.c,tcellbr){
+betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,rown){
   
+##############name the tcell matrix, the scatter function drops the names!!
+
+rownames(tcellbr)<-rown
+comm.print(rownames(tcellbr)[1:10],all.rank=TRUE)
+
+
 #make sure there is matches
-if(sum(!rownames(toScatterMatrix[[1]]) %in% rownames(tcellbr))==0){
+if(sum(!rownames(toScatterMatrix) %in% rownames(tcellbr))==0){
 print("Rownames of the matrix match the tcellbr")
+} else{
+print("rownames of the matrix DO not match the tcellbr")
+break
 }
 
 #correct index
-if(sum(!rownames(toScatterMatrix[[1]]) %in% unique(as.vector(toScatterIndex[[1]])))==0){
+if(sum(!rownames(toScatterMatrix) %in% unique(as.vector(toScatterIndex)))==0){
 print("Rownames of the matrix match the index of the matrix")
+} else{
+print("rownames of the matrix DO not match index of the matrix")
+break
 }
-
-
- #compute beta metrics
-  #set flags
-  phylosor.c<-FALSE
-  beta.sim<-TRUE
-  
-  
+    
   print(paste("Number of within loop calls:", ncol(toScatterIndex)))
+
   #Within a chunk, loop through the indexes and compute betadiversity
   holder<-apply(toScatterIndex,2,function(x) {
 
@@ -314,7 +233,7 @@ print("Rownames of the matrix match the index of the matrix")
       out<-data.frame(To=rownames(comm.d)[1],From=rownames(comm.d)[2],BetaSim=0,Sorenson=0,MNTD=0)
     } else{
       
-      out<-beta_all(comm.d,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr)
+      out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr)
     }
     return(out)
   }

@@ -48,7 +48,6 @@ print(paste(comm.rank(),"loaded"))
 #Read in phylogeny
 tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
 
-
 #bring in traits
 traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
 
@@ -97,31 +96,38 @@ IndexFunction<-splitIndices(ncol(z),comm.size())
 
 #print(paste("Length of IndexFunction is:",length(IndexFunction)))
 
-###Send the subset matrix
-toScatterMatrix<-lapply(IndexFunction,function(y){
-  Index_Space<-z[,y]
-  rowsTocall<-unique(as.vector(Index_Space))
-  comm.df<-data.frame(comm[V1 %in% rowsTocall])
-  comm.df<-comm.df[,which(!apply(comm.df,2,sum)==0)]
+  ###Send the subset matrix
+  toScatterMatrix<-lapply(IndexFunction,function(y){
+    Index_Space<-z[,y]
+    rowsTocall<-unique(as.vector(Index_Space))
+    comm.df<-data.frame(comm[V1 %in% rowsTocall])
+    comm.df<-comm.df[,which(!apply(comm.df,2,sum)==0)]
+    rownames(comm.df)<-comm.df$V1
+    comm.df<-comm.df[,!colnames(comm.df) %in% "V1"]
+  })
   
-  rownames(comm.df)<-comm.df$V1
-  comm.df<-comm.df[,!colnames(comm.df) %in% "V1"]
-})
+  ###Send the subset 
+  toScatterIndex<-lapply(IndexFunction,function(y){
+    Index_Space<-z[,y]
+  })
+  
+  ##subset of the tcellbr
+  toScatterTcell<-lapply(IndexFunction,function(y){
+    Index_Space<-z[,y]
+    rowsTocall<-unique(as.vector(Index_Space))
+    a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
+  })
 
-###Send the subset 
-toScatterIndex<-lapply(IndexFunction,function(y){
-  Index_Space<-z[,y]
-})
-
-##subset of the tcellbr
-toScatterTcell<-lapply(IndexFunction,function(y){
+##subset of the tcellbr rownames 
+toScatterTcellrownames<-lapply(IndexFunction,function(y){
   Index_Space<-z[,y]
   rowsTocall<-unique(as.vector(Index_Space))
-tcellbr[rownames(tcellbr) %in% rowsTocall,]
+  rownames(tcellbr)[rownames(tcellbr) %in% rowsTocall]
 })
 
 
 } else  {
+toScatterTcellrownames<-NULL
 traits<-NULL
 toScatterMatrix<-NULL
 toScatterIndex<-NULL
@@ -138,14 +144,19 @@ Indat<-scatter(toScatterIndex,rank.source=0)
 #get tcell for that core
 Tcell<-scatter(toScatterTcell,rank.source=0)
 
+Tcellnames<-scatter(toScatterTcellrownames,rank.source=0)
+
 #Cast trait matrix to everyone
 traits<-bcast(traits)
 
 comm.print(Indat[,1:5],all.rank=TRUE)
 
+comm.print(Tcell[1:5,1:5],all.rank=TRUE)
+
+
 comm.print(paste("Total nodes is:", comm.size()))
 
-timeF<-system.time(beta_out<-betaPar.scatter(toScatterMatrix=dat,toScatterIndex=Indat,phylosor.c=FALSE,beta.sim=TRUE,tcellbr=Tcell))
+timeF<-system.time(beta_out<-betaPar.scatter(toScatterMatrix=dat,toScatterIndex=Indat,tcellbr=Tcell,rown=Tcellnames))
 
 #Return timing argument to console
 print(timeF)
