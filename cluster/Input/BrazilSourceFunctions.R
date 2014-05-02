@@ -38,7 +38,6 @@ MNND <- function(A,B,sp.list,dists)
 }
 
 
-
 ##Ben Holt's matrix phylo betadiversity function, let's break this into pieces, so its not-redundant on each call
 
 #Function gets the edge matrix for all nodes, takes awhile
@@ -139,7 +138,7 @@ matpsim <- function(com,tcellbr) # make sure nodes are labelled and that com and
 
 #calculate phylosim between cells, broken out from original function
 
-nmatsim <- function(cell_b,cell_a) # samp = grid cell of interest
+nmatsim <- function(cell_b,cell_a,tcellbr) # samp = grid cell of interest
 {
   a_br  <- tcellbr[cell_a,]
   b_br <- tcellbr[cell_b,]
@@ -177,7 +176,7 @@ cellbr <- function(i,spp_br, com)
 
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
-beta_all<-function(comm=comm,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr=tcellbr){
+beta_all<-function(comm=comm,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr){
   
   
   if(sum(comm)==0){return(NA)}
@@ -218,7 +217,7 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr
   if(beta.sim){
 
     #Compute cell matrix and melt it into a dataframe 
-    betaSIM<-nmatsim(rownames(comm)[1],rownames(comm)[2])
+    betaSIM<-nmatsim(as.numeric(rownames(comm)[1]),as.numeric(rownames(comm)[2]),tcellbr)
     pmatSum<-data.frame(rownames(comm)[1],rownames(comm)[2],betaSIM)
     colnames(pmatSum)<-c("To","From","BetaSim")
     
@@ -233,19 +232,14 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr
   siteXspp_traits<-comm[,colnames(comm) %in% rownames(mon_cut)]
   
   #direct traits, need to be standardized
-  
-  #   #Zscores, standardized by sd and subtracted means
-  #   means<-apply(mon_cut,2,mean)
-  #   Bill<-mon_cut$Bill - means["Bill"]/sd(mon_cut$Bill)
-  #   Mass<-mon_cut$Mass - means["Mass"]/sd(mon_cut$Mass)
-  #   WingChord<-(mon_cut$WingChord - means["WingChord"])/sd(mon_cut$WingChord)
-  #   z.scores<-data.frame(Bill,Mass,WingChord)
-  #   rownames(z.scores)<-rownames(mon_cut)
-  #   newSGdist<-dist(z.scores,method="euclidean")
-  #   
+ 
   
   #If you wanted to collapse traits into PC axis using: 
-  prc_traits<-prcomp(mon_cut,scale=TRUE)
+
+#if variance is 0, remove trait
+colvar<-!apply(mon_cut,2,var)==0
+mon_cut<-mon_cut[,colvar]
+  prc_traits<-stats::prcomp(mon_cut,scale=TRUE)
   newSGdist <- dist(prc_traits$x)
   
   #create sp.list for trait function
@@ -288,56 +282,46 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr
 
 #Wrapper function!
 
-#betaPar function takes in the siteXspp argument (comm), the rank of the node (rank), and 
-#the chunks for which to split indices. The function finds all pairwise comparisons of an index (slow)
-#breaks the index into chunk pieces, and runs these chunks on seperate nodes of the cluster
 
-betaPar<-function(comm,rankNumber,chunks,beta.sim,phylosor.c,tcellbr=tcellbr){
-  #Create all pairwise combinations of siteXspp
-  z<-combn(nrow(comm),2)
+betaPar.scatter<-function(toScatterMatrix,toScatterIndex,beta.sim,phylosor.c,tcellbr){
   
-  #print(paste("Total number of iterations:",ncol(z)))
-  
-  #split rows into indices, we want each loop to take about an hour, 
-  #THe function is initially timed at 20 seconds, 
-  IndexFunction<-splitIndices(ncol(z),chunks)
-  
-#print(paste("Length of IndexFunction is:",length(IndexFunction)))
+#make sure there is matches
+if(sum(!rownames(toScatterMatrix[[1]]) %in% rownames(tcellbr))==0){
+print("Rownames of the matrix match the tcellbr")
+}
 
-  ###Divide the indexes, ########THE ONE IS CRUCIAL HERE< THIS NEEDS TO BE RANKED ON PBDMPI
-  Index_Space<-z[,IndexFunction[[rankNumber]]]
-  
+#correct index
+if(sum(!rownames(toScatterMatrix[[1]]) %in% unique(as.vector(toScatterIndex[[1]])))==0){
+print("Rownames of the matrix match the index of the matrix")
+}
 
-  #Create an output to hold function container, there are as many rows as columns in the combinations, and there are five columns for the output data
-  holder<-list()
-  
-print(paste("Number of within loop calls:", ncol(Index_Space)))
 
+ #compute beta metrics
+  #set flags
+  phylosor.c<-FALSE
+  beta.sim<-TRUE
+  
+  
+  print(paste("Number of within loop calls:", ncol(toScatterIndex)))
   #Within a chunk, loop through the indexes and compute betadiversity
-  for (x in 1:ncol(Index_Space)){
-    #print(x)
-    #Grab the correct index
-    index_col<-Index_Space[,x] 
-    
+  holder<-apply(toScatterIndex,2,function(x) {
+
     #get the comm row
-    comm.d<-comm[c(index_col[[1]],index_col[[2]]),]
+    comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
     
     #if the rows are identical, betadiversity is 0
-    if(sum(!comm.d[1,]==comm.d[2,])==0){
-      holder[[x]]<-data.frame(To=rownames(comm.d)[[1]],From=rownames(comm.d)[[2]],BetaSim=0,Sorenson=0,MNTD=0)
+    if(duplicated(comm.d)[2]){
+      out<-data.frame(To=rownames(comm.d)[1],From=rownames(comm.d)[2],BetaSim=0,Sorenson=0,MNTD=0)
     } else{
       
-      #compute beta metrics
-      #set flags
-      phylosor.c<-phylosor.c
-      beta.sim<-beta.sim
-      
-      out<-beta_all(comm.d,tree=tree,traits=traits,beta.sim,phylosor.c)
-      holder[[x]]<-out
+      out<-beta_all(comm.d,tree=tree,traits=traits,beta.sim,phylosor.c,tcellbr)
     }
+    return(out)
   }
+  )
   
   #bind to a dataframe
   holder<-rbind.fill(holder)
   
-  return(holder)}
+  return(holder)
+}

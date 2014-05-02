@@ -8,7 +8,7 @@ require(reshape,quietly=TRUE,warn.conflicts=FALSE)
 
 #read in data
 
-droppath<-"/home1/02443/bw4sz/GlobalMammals/"
+droppath<-"C:/Users/Jorge/Documents/BrazilDimDiv/cluster"
 
 #set rank number and size.
 .rank<-comm.rank()
@@ -18,13 +18,8 @@ droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 
 if(.rank==0){
 
-#read in beta file from the cluster
-dat5<-read.table(paste(droppath,"beta_out.csv",sep="/"),nrows=5,row.names=NULL)
-classes <- sapply(dat5, class)
 
-print(classes)
-
-dat<-read.table(paste(droppath,"beta_out.csv",sep="/"),row.names=NULL)
+dat<-fread(paste(droppath,"beta_out.csv",sep="/"))
 
 print(head(dat))
 
