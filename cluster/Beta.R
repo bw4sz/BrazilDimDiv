@@ -9,6 +9,9 @@ require(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
 
 init()
 
+#create memory profile
+ comm.Rprof("profile1.out",memory.profiling = TRUE)
+
 #Require libraries, i hate the messages
 suppressMessages(require(reshape,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
@@ -37,13 +40,11 @@ suppressMessages(source("Input/BrazilSourceFunctions.R"))
 ########################################
 
 if (comm.rank()==0){
-siteXspp <- fread("Input/siteXspp1dgr.csv")    # as usual R read.table
+siteXspp <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
 
 #make v1 a key column
 siteXspp[,V1:=1:nrow(siteXspp)]
 setkey(siteXspp,"V1")
-
-print(paste(comm.rank(),"loaded"))
 
 #Read in phylogeny
 tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
@@ -58,10 +59,8 @@ print(dim(traits))
 load(file="Input/tcellbr.RData")
 print("read in tcellbr.RData")
 
-print("data loaded!")
-
 #Remove xy data
-siteXspp<-siteXspp[, c("x","y","rich"):=NULL,]
+siteXspp<-siteXspp[, c("x","y","rich","V0"):=NULL,]
 
 #Remove lines with less than 2 species
 system.time(richness<-rowSums(siteXspp[,-1,with=F]))
@@ -76,14 +75,12 @@ splist<-colnames(siteXspp)
 
 #remove species in the siteXspp that are not in phylogeny
 siteXspp<-siteXspp[,c(colnames(siteXspp)[colnames(siteXspp) %in% tree$tip.label],key(siteXspp)),with=F]
+
 print(dim(siteXspp))
-print(dim(siteXspp))
-print(paste("There are in siteXspp NAs:",sum(is.na(siteXspp))))
 
 #subtest
-system.time(comm<-siteXspp[V1 <= 500])
+system.time(comm<-siteXspp[V1 < 4000])
 
-print(paste("There are in comm NAs:",sum(is.na(comm))))
 
 #Create all pairwise combinations of siteXspp
 z<-combn(comm$V1,2)
@@ -94,7 +91,7 @@ print(paste("Total number of iterations:",ncol(z)))
 #split rows into indices
 IndexFunction<-splitIndices(ncol(z),comm.size())
 
-#print(paste("Length of IndexFunction is:",length(IndexFunction)))
+print(paste("Length of IndexFunction is:",length(IndexFunction)))
 
   ###Send the subset matrix
   toScatterMatrix<-lapply(IndexFunction,function(y){
@@ -106,57 +103,97 @@ IndexFunction<-splitIndices(ncol(z),comm.size())
     comm.df<-comm.df[,!colnames(comm.df) %in% "V1"]
   })
   
+rm(comm)
+
+print(gc())
+
+print("toScatterMatrix")
   ###Send the subset 
   toScatterIndex<-lapply(IndexFunction,function(y){
     Index_Space<-z[,y]
   })
+print("toScatterIndex")
+
   
   ##subset of the tcellbr
   toScatterTcell<-lapply(IndexFunction,function(y){
     Index_Space<-z[,y]
     rowsTocall<-unique(as.vector(Index_Space))
     a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
+    b<-a[,which(!apply(a,2,sum)==0)]
+print(dim(b))
+return(b)
   })
+
+
+print("toScatterTcell")
 
 ##subset of the tcellbr rownames 
 toScatterTcellrownames<-lapply(IndexFunction,function(y){
   Index_Space<-z[,y]
   rowsTocall<-unique(as.vector(Index_Space))
-  rownames(tcellbr)[rownames(tcellbr) %in% rowsTocall]
+  a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
+    b<-a[,which(!apply(a,2,sum)==0)]
+rownames(b)
 })
+
+
+print("toScatterTcellnames")
+
+rm(tcellbr)
+
+gc()
+
+
+toScatterTrait<-lapply(toScatterMatrix,function(y){
+traits[rownames(traits) %in% colnames(y),] 
+})
+
+print("toScatterTraits")
+
+rm(traits)
 
 
 } else  {
 toScatterTcellrownames<-NULL
-traits<-NULL
 toScatterMatrix<-NULL
 toScatterIndex<-NULL
 toScatterTcell<-NULL
+toScatterTrait<-NULL
 }
 
 
+print(gc())
 #get data for that core
 dat<-scatter(toScatterMatrix,rank.source=0)
+print(gc())
+
+comm.print("scatter matrix")
 
 #get index for that core
 Indat<-scatter(toScatterIndex,rank.source=0)
 
+comm.print("scatter index")
+
 #get tcell for that core
 Tcell<-scatter(toScatterTcell,rank.source=0)
 
+comm.print("scatter tcell")
+
 Tcellnames<-scatter(toScatterTcellrownames,rank.source=0)
+comm.print("scatter tcellnames")
 
 #Cast trait matrix to everyone
-traits<-bcast(traits)
+traitn<-scatter(toScatterTrait,rank.source=0)
 
-comm.print(Indat[,1:5],all.rank=TRUE)
+comm.print("scatter trait")
 
-comm.print(Tcell[1:5,1:5],all.rank=TRUE)
+Rprof(NULL)
 
-
+print(gc())
 comm.print(paste("Total nodes is:", comm.size()))
 
-timeF<-system.time(beta_out<-betaPar.scatter(toScatterMatrix=dat,toScatterIndex=Indat,tcellbr=Tcell,rown=Tcellnames))
+timeF<-system.time(beta_out<-betaPar.scatter(toScatterMatrix=dat,toScatterIndex=Indat,tcellbr=Tcell,rown=Tcellnames,traitn))
 
 #Return timing argument to console
 print(timeF)

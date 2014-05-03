@@ -19,7 +19,6 @@ siteXspp <- read.csv("Input/siteXspp1dgr.csv")
 #Just get the species data, starts on column 33 for this example
 siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich")]
 
-#Just get the species data, starts on column 33 for this example
 
 #Remove lines with less than 2 species
 richness<-apply(siteXspp,1,sum)
