@@ -1,9 +1,11 @@
 #Define Function
 
-require(picante,quietly=TRUE,warn.conflicts=FALSE)
-require(foreach,quietly=TRUE,warn.conflicts=FALSE)
-require(doSNOW,quietly=TRUE,warn.conflicts=FALSE)
-require(phylobase,quietly=TRUE,warn.conflicts=FALSE)
+
+
+suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(foreach,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(doSNOW,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(phylobase,quietly=TRUE,warn.conflicts=FALSE))
 
 #Set dropbox path
 
@@ -14,11 +16,12 @@ setwd(droppath)
 ####Read in data
 #Read in species matrix
 
-siteXspp <- read.csv("Input/siteXspp1dgr.csv")
+siteXspp <- read.csv("Input/UniquesiteXspp.csv")
+
+print(siteXspp[1:5,1:5])
 
 #Just get the species data, starts on column 33 for this example
-siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich")]
-
+siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich","V1","V0")]
 
 #Remove lines with less than 2 species
 richness<-apply(siteXspp,1,sum)

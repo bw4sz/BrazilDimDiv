@@ -43,7 +43,7 @@ if (comm.rank()==0){
 siteXspp <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
 
 #make v1 a key column
-siteXspp[,V1:=1:nrow(siteXspp)]
+#siteXspp[,V1:=1:nrow(siteXspp)]
 setkey(siteXspp,"V1")
 
 #Read in phylogeny
@@ -79,7 +79,7 @@ siteXspp<-siteXspp[,c(colnames(siteXspp)[colnames(siteXspp) %in% tree$tip.label]
 print(dim(siteXspp))
 
 #subtest
-system.time(comm<-siteXspp[V1 < 4000])
+system.time(comm<-siteXspp[V1 < 5000])
 
 
 #Create all pairwise combinations of siteXspp
@@ -142,7 +142,6 @@ print("toScatterTcellnames")
 
 rm(tcellbr)
 
-gc()
 
 
 toScatterTrait<-lapply(toScatterMatrix,function(y){
@@ -163,10 +162,8 @@ toScatterTrait<-NULL
 }
 
 
-print(gc())
 #get data for that core
 dat<-scatter(toScatterMatrix,rank.source=0)
-print(gc())
 
 comm.print("scatter matrix")
 
