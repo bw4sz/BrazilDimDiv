@@ -20,8 +20,8 @@ siteXspp <- read.csv("Input/UniquesiteXspp.csv")
 
 print(siteXspp[1:5,1:5])
 
-#Just get the species data, starts on column 33 for this example
-siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich","V1","V0")]
+#Just get the species data
+siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich","V1","V0","id")]
 
 #Remove lines with less than 2 species
 richness<-apply(siteXspp,1,sum)

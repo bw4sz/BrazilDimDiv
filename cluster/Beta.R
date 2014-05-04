@@ -42,9 +42,15 @@ suppressMessages(source("Input/BrazilSourceFunctions.R"))
 if (comm.rank()==0){
 siteXspp <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
 
+print("siteXspp table:")
+print(siteXspp[1:5,1:5,with=F])
+
 #make v1 a key column
-#siteXspp[,V1:=1:nrow(siteXspp)]
-setkey(siteXspp,"V1")
+siteXspp[,V1:=1:nrow(siteXspp)]
+setkey(siteXspp,V1)
+
+print("Tables in memory:")
+tables()
 
 #Read in phylogeny
 tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
@@ -52,35 +58,11 @@ tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
 #bring in traits
 traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
 
-print(head(traits))
-print(dim(traits))
-
 #Read in cell by branch table made from source
 load(file="Input/tcellbr.RData")
-print("read in tcellbr.RData")
-
-#Remove xy data
-siteXspp<-siteXspp[, c("x","y","rich","V0"):=NULL,]
-
-#Remove lines with less than 2 species
-system.time(richness<-rowSums(siteXspp[,-1,with=F]))
-
-keep<-which(richness > 1)
-
-#Keep siteXspp columns
-siteXspp<-siteXspp[keep,1:ncol(siteXspp),with=F]
-
-#Get entire species list
-splist<-colnames(siteXspp)
-
-#remove species in the siteXspp that are not in phylogeny
-siteXspp<-siteXspp[,c(colnames(siteXspp)[colnames(siteXspp) %in% tree$tip.label],key(siteXspp)),with=F]
-
-print(dim(siteXspp))
 
 #subtest
-system.time(comm<-siteXspp[V1 < 5000])
-
+comm<-siteXspp[V1 < 1000]
 
 #Create all pairwise combinations of siteXspp
 z<-combn(comm$V1,2)
@@ -105,7 +87,7 @@ print(paste("Length of IndexFunction is:",length(IndexFunction)))
   
 rm(comm)
 
-print(gc())
+comm.print(paste("before index memory:",sum(gc()[,6])))
 
 print("toScatterMatrix")
   ###Send the subset 
@@ -121,7 +103,6 @@ print("toScatterIndex")
     rowsTocall<-unique(as.vector(Index_Space))
     a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
     b<-a[,which(!apply(a,2,sum)==0)]
-print(dim(b))
 return(b)
   })
 
@@ -143,7 +124,6 @@ print("toScatterTcellnames")
 rm(tcellbr)
 
 
-
 toScatterTrait<-lapply(toScatterMatrix,function(y){
 traits[rownames(traits) %in% colnames(y),] 
 })
@@ -161,6 +141,9 @@ toScatterTcell<-NULL
 toScatterTrait<-NULL
 }
 
+
+
+comm.print(paste("before scatter memory:",sum(gc()[,6])))
 
 #get data for that core
 dat<-scatter(toScatterMatrix,rank.source=0)
@@ -187,7 +170,8 @@ comm.print("scatter trait")
 
 Rprof(NULL)
 
-print(gc())
+comm.print(paste("after scatter memory:",sum(gc()[,6])))
+
 comm.print(paste("Total nodes is:", comm.size()))
 
 timeF<-system.time(beta_out<-betaPar.scatter(toScatterMatrix=dat,toScatterIndex=Indat,tcellbr=Tcell,rown=Tcellnames,traitn))
