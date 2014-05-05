@@ -15,6 +15,86 @@ Getsplist<-function(commID){
 }
 
 
+#Branch matrix
+
+matpsim <- function(phyl, com) # make sure nodes are labelled and that com and phyl species match
+{
+  
+  require(phylobase)  # detail information for all phylo branches
+  new <- phylo4(phyl)
+  dat <- as.data.frame(print(new))
+  allbr <- dat$edge.length
+  names(allbr) <- getEdge(new)
+  spp <- colnames(com)
+
+  
+  cl <- getMPIcluster() # create parellel clusters
+  registerDoSNOW(cl)
+  
+  # create a list of phy branches for each species
+  
+  brs <-  foreach(i = spp, .packages = "phylobase") %dopar% #this loop makes a list of branches for each species
+{  
+
+  brsp <- vector()
+  br   <- as.numeric(rownames(dat[which(dat$label==i),]))
+  repeat{
+    brsn <- getEdge(new,br)
+    brsl <- dat[names(brsn),"edge.length"]
+    names(brsl) <- brsn
+    brsp <- c(brsp, brsl)
+    br   <- dat[br,3]
+    if(br == 0) {break}
+  }
+  
+  brsp
+}
+  names(brs) <- spp
+  
+    
+  print("brs")
+  
+  # create a species by phy branch matrix
+  
+  spp_br <- matrix(0,nrow = length(spp), ncol = length(allbr))
+  rownames(spp_br) <- spp
+  colnames(spp_br) <- names(allbr)
+  
+  for(i in spp)
+  {
+    spp_br[i,names(brs[[i]])] <- brs[[i]]
+  }
+  
+  spp_br <- spp_br[,-(ncol(com)+1)] # removes root
+  spp_br <- spp_br[,!colSums(spp_br) %in% c(0,nrow(spp_br))]  # here take out all common branches instead
+  
+  print("spp_br")
+  
+  spp_br <<- spp_br
+  
+  # function to give the pres/abs of phy branches withi cell i
+  
+  cellbr <- function(i,spp_br, com)
+  {
+    i_spp <- rownames(spp_br)[com[i,]>0]
+    if(length(i_spp) > 1)
+    {i_br  <- as.numeric(apply(spp_br[i_spp,],2,max))}
+    else  {i_br  <- as.numeric(spp_br[i_spp,]) }
+    names(i_br) <- colnames(spp_br)
+    return(i_br)
+  }
+  
+  print(rownames(com)[1:10])
+  
+  tcellbr <- foreach(j = rownames(com), .combine = "rbind") %dopar% {cellbr(j,spp_br,com)}
+  
+  print("cell_br")
+  rownames(tcellbr) <- rownames(com)
+  tcellbr <<- tcellbr
+return(tcellbr)
+}
+
+
 ############Trait Betadiversity Function,
 #Computes the mean nearest neighbor
 
@@ -107,10 +187,7 @@ cellbr <- function(i,spp_br, com)
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
 beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr){
-  
-  
-  if(sum(comm)==0){return(NA)}
-  
+    
   #remove all species with no records in the row
   comm<-comm[,which(!apply(comm,2,sum)==0)]
   
@@ -196,28 +273,28 @@ mon_cut<-mon_cut[,colvar]
 #Wrapper function!
 
 
-betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,rown){
+betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,rown,traits){
   
 ##############name the tcell matrix, the scatter function drops the names!!
 
 rownames(tcellbr)<-rown
-comm.print(rownames(tcellbr)[1:10],all.rank=TRUE)
+print(rownames(tcellbr)[1:10],all.rank=TRUE)
 
 
 #make sure there is matches
 if(sum(!rownames(toScatterMatrix) %in% rownames(tcellbr))==0){
 print("Rownames of the matrix match the tcellbr")
 } else{
-print("rownames of the matrix DO not match the tcellbr")
-break
+stop("rownames of the matrix DO not match the tcellbr")
+
 }
 
 #correct index
 if(sum(!rownames(toScatterMatrix) %in% unique(as.vector(toScatterIndex)))==0){
 print("Rownames of the matrix match the index of the matrix")
 } else{
-print("rownames of the matrix DO not match index of the matrix")
-break
+stop("rownames of the matrix DO not match index of the matrix")
+
 }
     
   print(paste("Number of within loop calls:", ncol(toScatterIndex)))
@@ -227,14 +304,9 @@ break
 
     #get the comm row
     comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
-    
-    #if the rows are identical, betadiversity is 0
-    if(duplicated(comm.d)[2]){
-      out<-data.frame(To=rownames(comm.d)[1],From=rownames(comm.d)[2],BetaSim=0,Sorenson=0,MNTD=0)
-    } else{
       
-      out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr)
-    }
+    out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr)
+ 
     return(out)
   }
   )

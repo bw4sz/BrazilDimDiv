@@ -1,6 +1,4 @@
-#Define Function
-
-
+#Compute Phylogenetic Cell by Branch matrix for all unique comparisons using Betasim
 
 suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(foreach,quietly=TRUE,warn.conflicts=FALSE))
@@ -18,34 +16,18 @@ setwd(droppath)
 
 siteXspp <- as.matrix(read.csv("Input/UniquesiteXspp.csv"))
 
-
 print(siteXspp[1:5,1:5])
 
 rownames(siteXspp)<-siteXspp[,"id"]
 
-print(rownames(siteXspp))
-
 #Just get the species data
 siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich","V1","V0","id")]
 
-#Remove lines with less than 2 species
-richness<-apply(siteXspp,1,sum)
-keep<-which(richness > 1)
-siteXspp<-siteXspp[keep,]
+#read in phylogeny
 
-
-#Get entire species list
-splist<-colnames(siteXspp)
-
-#Read in phylogeny
 tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
 
-#remove species in the siteXspp that are not in phylogeny
-siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
-
-print(dim(siteXspp))
-
-print(rownames(siteXspp)[1:10])
+print(tree)
 
 matpsim <- function(phyl, com) # make sure nodes are labelled and that com and phyl species match
 {

@@ -13,7 +13,7 @@ setnames(xytab,colnames(xytab),c("V1","x","y","id"))
 xytab[,id:=as.character(xytab$id)]
 setkey(xytab,id)
 
-beta_out<-fread("beta_out.csv")[,-1,with=F]
+beta_out<-fread("beta_out.csv")
 
 print(head(beta_out))
 setnames(beta_out,colnames(beta_out),c("To","From","Tax","Phylo",'Trait'))
@@ -31,10 +31,11 @@ setnames(Tomerge,colnames(Tomerge),c("To.id","To.OriginalRow",'To.x',"To.y","Fro
 setkey(Tomerge,From.id)
 
 head(Frommerge<-Tomerge[xytab,])
-setnames(Frommmerge,colnames(Frommerge),c("To.id","To.OriginalRow",'To.x',"To.y","From.id","Sorenson","BetaSim","MNTD","From.OriginalRow","From.x","From.y"))
+setnames(Frommerge,colnames(Frommerge),c("To.id","To.OriginalRow",'To.x',"To.y","From.id","Sorenson","BetaSim","MNTD","From.OriginalRow","From.x","From.y"))
 
-Frommerge[complete.cases(Frommerge),]
+Frommerge<-Frommerge[complete.cases(Frommerge),]
+
 
 print(dim(Frommerge))
 
-write.csv("FinalData.csv")
+write.csv(Frommerge,"FinalData.csv")

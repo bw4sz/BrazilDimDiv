@@ -39,14 +39,13 @@ suppressMessages(source("Input/BrazilSourceFunctions.R"))
 ########################################
 
 if (comm.rank()==0){
-siteXspp <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
+comm <- fread("Input/UniquesiteXspp.csv",nrows=20)    # as usual R read.table
 
 print("siteXspp table:")
-print(siteXspp[1:5,1:5,with=F])
+print(comm[1:5,1:5,with=F])
 
 #make v1 a key column
-siteXspp[,V1:=1:nrow(siteXspp)]
-setkey(siteXspp,V1)
+setkey(comm,id)
 
 print("Tables in memory:")
 tables()
@@ -60,13 +59,8 @@ traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
 #Read in cell by branch table made from source
 load(file="Input/tcellbr.RData")
 
-#subtest
-comm<-siteXspp[V1 < 10]
-
-rm(siteXspp)
-
 #Create all pairwise combinations of siteXspp
-z<-combn(comm$V1,2)
+z<-combn(comm$id,2)
 
 #index by key
 print(paste("Total number of iterations:",ncol(z)))
@@ -76,34 +70,34 @@ IndexFunction<-splitIndices(ncol(z),comm.size())
 
 print(paste("Length of IndexFunction is:",length(IndexFunction)))
 
-  ###Send the subset matrix
-  toScatterMatrix<-lapply(IndexFunction,function(y){
-    Index_Space<-z[,y]
-    rowsTocall<-unique(as.vector(Index_Space))
-    comm.df<-data.frame(comm[V1 %in% rowsTocall])
-    comm.df<-comm.df[,which(!apply(comm.df,2,sum)==0)]
-    rownames(comm.df)<-comm.df$V1
-    comm.df<-comm.df[,!colnames(comm.df) %in% "V1"]
-  })
-  
+###Send the subset matrix
+toScatterMatrix<-lapply(IndexFunction,function(y){
+  Index_Space<-z[,y]
+  rowsTocall<-unique(as.vector(Index_Space))
+  comm.df<-data.frame(comm[id %in% rowsTocall])
+  comm.df<-comm.df[,which(!apply(comm.df,2,sum)==0)]
+  rownames(comm.df)<-comm.df$id
+  comm.df<-comm.df[,!colnames(comm.df) %in% c("id")]
+})
+
 rm(comm)
 
 print("toScatterMatrix")
-  ###Send the subset 
-  toScatterIndex<-lapply(IndexFunction,function(y){
-    Index_Space<-z[,y]
-  })
+###Send the subset 
+toScatterIndex<-lapply(IndexFunction,function(y){
+  Index_Space<-z[,y]
+})
 print("toScatterIndex")
 
-  
-  ##subset of the tcellbr
-  toScatterTcell<-lapply(IndexFunction,function(y){
-    Index_Space<-z[,y]
-    rowsTocall<-unique(as.vector(Index_Space))
-    a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
-    b<-a[,which(!apply(a,2,sum)==0)]
-return(b)
-  })
+
+##subset of the tcellbr
+toScatterTcell<-lapply(IndexFunction,function(y){
+  Index_Space<-z[,y]
+  rowsTocall<-unique(as.vector(Index_Space))
+  a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
+  b<-a[,which(!apply(a,2,sum)==0)]
+  return(b)
+})
 
 
 print("toScatterTcell")
@@ -113,8 +107,8 @@ toScatterTcellrownames<-lapply(IndexFunction,function(y){
   Index_Space<-z[,y]
   rowsTocall<-unique(as.vector(Index_Space))
   a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
-    b<-a[,which(!apply(a,2,sum)==0)]
-rownames(b)
+  b<-a[,which(!apply(a,2,sum)==0)]
+  rownames(b)
 })
 
 
@@ -124,13 +118,12 @@ rm(tcellbr)
 
 
 toScatterTrait<-lapply(toScatterMatrix,function(y){
-traits[rownames(traits) %in% colnames(y),] 
+  traits[rownames(traits) %in% colnames(y),] 
 })
 
 print("toScatterTraits")
 
 rm(traits)
-
 
 } else  {
 toScatterTcellrownames<-NULL
