@@ -1,9 +1,11 @@
 #Define Function
 
-require(picante,quietly=TRUE,warn.conflicts=FALSE)
-require(foreach,quietly=TRUE,warn.conflicts=FALSE)
-require(doSNOW,quietly=TRUE,warn.conflicts=FALSE)
-require(phylobase,quietly=TRUE,warn.conflicts=FALSE)
+
+
+suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(foreach,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(doSNOW,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(phylobase,quietly=TRUE,warn.conflicts=FALSE))
 
 #Set dropbox path
 
@@ -14,17 +16,23 @@ setwd(droppath)
 ####Read in data
 #Read in species matrix
 
-siteXspp <- read.csv("Input/siteXspp1dgr.csv")
+siteXspp <- as.matrix(read.csv("Input/UniquesiteXspp.csv"))
 
-#Just get the species data, starts on column 33 for this example
-siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich")]
 
-#Just get the species data, starts on column 33 for this example
+print(siteXspp[1:5,1:5])
+
+rownames(siteXspp)<-siteXspp[,"id"]
+
+print(rownames(siteXspp))
+
+#Just get the species data
+siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich","V1","V0","id")]
 
 #Remove lines with less than 2 species
 richness<-apply(siteXspp,1,sum)
 keep<-which(richness > 1)
 siteXspp<-siteXspp[keep,]
+
 
 #Get entire species list
 splist<-colnames(siteXspp)
@@ -36,6 +44,8 @@ tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
 siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
 
 print(dim(siteXspp))
+
+print(rownames(siteXspp)[1:10])
 
 matpsim <- function(phyl, com) # make sure nodes are labelled and that com and phyl species match
 {
@@ -55,8 +65,7 @@ matpsim <- function(phyl, com) # make sure nodes are labelled and that com and p
   
   brs <-  foreach(i = spp, .packages = "phylobase") %dopar% #this loop makes a list of branches for each species
 {  
-  print(which(spp == i)/length(spp))
-  print(date())
+
   brsp <- vector()
   br   <- as.numeric(rownames(dat[which(dat$label==i),]))
   repeat{
@@ -105,19 +114,22 @@ matpsim <- function(phyl, com) # make sure nodes are labelled and that com and p
     return(i_br)
   }
   
-    
+  print(rownames(com)[1:10])
+  
   tcellbr <- foreach(j = rownames(com), .combine = "rbind") %dopar% {cellbr(j,spp_br,com)}
   
   print("cell_br")
   rownames(tcellbr) <- rownames(com)
   tcellbr <<- tcellbr
-
+return(tcellbr)
 }
 
 #compute
 tcellbr<-matpsim(phyl=tree,com=siteXspp)
 
 print("function computed")
+
+print(tcellbr[1:5,1:5])
 print(dim(tcellbr))
 
 
@@ -125,4 +137,3 @@ print(dim(tcellbr))
 save(tcellbr,file="Input/tcellbr.RData")
 
 print("imaged")
-
