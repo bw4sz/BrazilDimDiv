@@ -21,11 +21,18 @@ siteXspp <- as.matrix(read.csv("Input/UniquesiteXspp.csv"))
 
 print(siteXspp[1:5,1:5])
 
+rownames(siteXspp)<-siteXspp[,"id"]
 
 print(rownames(siteXspp))
 
 #Just get the species data
 siteXspp<-siteXspp[,!colnames(siteXspp) %in% c("X","x","y","rich","V1","V0","id")]
+
+#Remove lines with less than 2 species
+richness<-apply(siteXspp,1,sum)
+keep<-which(richness > 1)
+siteXspp<-siteXspp[keep,]
+
 
 #Get entire species list
 splist<-colnames(siteXspp)
@@ -37,6 +44,8 @@ tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
 siteXspp<-siteXspp[,colnames(siteXspp) %in% tree$tip.label]
 
 print(dim(siteXspp))
+
+print(rownames(siteXspp)[1:10])
 
 matpsim <- function(phyl, com) # make sure nodes are labelled and that com and phyl species match
 {
@@ -105,7 +114,8 @@ matpsim <- function(phyl, com) # make sure nodes are labelled and that com and p
     return(i_br)
   }
   
-    
+  print(rownames(com)[1:10])
+  
   tcellbr <- foreach(j = rownames(com), .combine = "rbind") %dopar% {cellbr(j,spp_br,com)}
   
   print("cell_br")
@@ -118,6 +128,8 @@ return(tcellbr)
 tcellbr<-matpsim(phyl=tree,com=siteXspp)
 
 print("function computed")
+
+print(tcellbr[1:5,1:5])
 print(dim(tcellbr))
 
 
