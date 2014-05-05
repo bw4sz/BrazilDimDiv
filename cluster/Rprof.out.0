@@ -1,0 +1,9 @@
+memory profiling: sample.interval=20000
+:158594:606807:14578984:36:"as.character" "factor" "as.factor" "split.default" "split" 
+:158392:623287:14554792:12:"split.default" "split" 
+:152839:471455:14386680:1:"split.default" "split" 
+:153243:715097:14433776:13:"gc" "print" "comm.print" 
+:158078:587240:14933744:253:".Call" "spmd.scatterv.integer" "spmd.scatter.array" "scatter" "standardGeneric" "scatter" 
+:215928:474540:17991792:2:"c" "do.call" "spmd.scatterv.integer" "spmd.scatter.array" "scatter" "standardGeneric" "scatter" 
+:257492:638852:20534304:234:"c" "do.call" "spmd.scatterv.raw" "unserialize" "spmd.scatter.object" "scatter" "standardGeneric" "scatter" 
+:201290:640236:17200456:12:"gc" "print" "comm.print" 
