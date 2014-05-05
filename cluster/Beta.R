@@ -10,7 +10,6 @@ require(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
 init()
 
 #create memory profile
- comm.Rprof("profile1.out",memory.profiling = TRUE)
 
 #Require libraries, i hate the messages
 suppressMessages(require(reshape,quietly=TRUE,warn.conflicts=FALSE))
@@ -62,7 +61,9 @@ traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
 load(file="Input/tcellbr.RData")
 
 #subtest
-comm<-siteXspp[V1 < 1000]
+comm<-siteXspp[V1 < 10]
+
+rm(siteXspp)
 
 #Create all pairwise combinations of siteXspp
 z<-combn(comm$V1,2)
@@ -86,8 +87,6 @@ print(paste("Length of IndexFunction is:",length(IndexFunction)))
   })
   
 rm(comm)
-
-comm.print(paste("before index memory:",sum(gc()[,6])))
 
 print("toScatterMatrix")
   ###Send the subset 
@@ -142,35 +141,31 @@ toScatterTrait<-NULL
 }
 
 
-
-comm.print(paste("before scatter memory:",sum(gc()[,6])))
-
 #get data for that core
-dat<-scatter(toScatterMatrix,rank.source=0)
+time_scatter<-system.time(dat<-scatter(toScatterMatrix,rank.source=0))
 
-comm.print("scatter matrix")
+print(paste("Time to scatter matrix:",time_scatter[3]))
+print(gc())
+
+comm.print("scattered matrix")
 
 #get index for that core
 Indat<-scatter(toScatterIndex,rank.source=0)
 
-comm.print("scatter index")
+comm.print("scattered index")
 
 #get tcell for that core
 Tcell<-scatter(toScatterTcell,rank.source=0)
 
-comm.print("scatter tcell")
+comm.print("scattered tcell")
 
 Tcellnames<-scatter(toScatterTcellrownames,rank.source=0)
-comm.print("scatter tcellnames")
+comm.print("scattered tcellnames")
 
 #Cast trait matrix to everyone
 traitn<-scatter(toScatterTrait,rank.source=0)
 
-comm.print("scatter trait")
-
-Rprof(NULL)
-
-comm.print(paste("after scatter memory:",sum(gc()[,6])))
+comm.print("scattered trait")
 
 comm.print(paste("Total nodes is:", comm.size()))
 
@@ -180,7 +175,7 @@ timeF<-system.time(beta_out<-betaPar.scatter(toScatterMatrix=dat,toScatterIndex=
 print(timeF)
 
 #try writing from all
-comm.write.table(beta_out,"beta_out.csv")
+comm.write.table(beta_out,"beta_out.csv",row.names=FALSE)
 
 finalize()
 

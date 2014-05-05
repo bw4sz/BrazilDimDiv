@@ -52,4 +52,6 @@ siteXspp<-siteXspp[, c("x","y","rich","V1"):=NULL,]
 
 dt.unique<-subset(siteXspp,!duplicated(siteXspp))
 
-write.csv(dt.unique,"Input/UniquesiteXspp.csv")
+print(paste("dimensions of the unique matrix:",dim(dt.unique)))
+
+write.csv(dt.unique,"Input/UniquesiteXspp.csv",row.names=FALSE)

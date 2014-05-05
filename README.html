@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!-- saved from url=(0014)about:internet -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=9" >
+
+<title>Dimensions of Biodiversity</title>
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 12px;
+   margin: 8px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 { 
+   font-size:2.2em; 
+}
+
+h2 { 
+   font-size:1.8em; 
+}
+
+h3 { 
+   font-size:1.4em; 
+}
+
+h4 { 
+   font-size:1.0em; 
+}
+
+h5 { 
+   font-size:0.9em; 
+}
+
+h6 { 
+   font-size:0.8em; 
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre {	
+   margin-top: 0;
+   max-width: 95%;
+   border: 1px solid #ccc;
+   white-space: pre-wrap;
+}
+
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code.r, code.cpp {
+   background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * { 
+      background: transparent !important; 
+      color: black !important; 
+      filter:none !important; 
+      -ms-filter: none !important; 
+   }
+
+   body { 
+      font-size:12pt; 
+      max-width:100%; 
+   }
+       
+   a, a:visited { 
+      text-decoration: underline; 
+   }
+
+   hr { 
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote { 
+      padding-right: 1em; 
+      page-break-inside: avoid; 
+   }
+
+   tr, img { 
+      page-break-inside: avoid; 
+   }
+
+   img { 
+      max-width: 100% !important; 
+   }
+
+   @page :left { 
+      margin: 15mm 20mm 15mm 10mm; 
+   }
+     
+   @page :right { 
+      margin: 15mm 10mm 15mm 20mm; 
+   }
+
+   p, h2, h3 { 
+      orphans: 3; widows: 3; 
+   }
+
+   h2, h3 { 
+      page-break-after: avoid; 
+   }
+}
+
+</style>
+
+
+
+
+
+</head>
+
+<body>
+<h1>Dimensions of Biodiversity</h1>
+
+<p>Code by Ben Weinstein
+Stony Brook University
+New York, USA</p>
+
+<p>Aim: To compute and compare taxonomic, phylogenetic and trait betadiversity among all global grid cells for mammals.</p>
+
+<h2>Input Data</h2>
+
+<p>A cell by species matrix is needed for species distributions</p>
+
+<p>A phylogeny with matching taxonomy to the species distributions</p>
+
+<p>A trait matrix with matching taxonomy to the species distributions</p>
+
+<h2>Code</h2>
+
+<p>In general, these computations need to run on a supercomputing cluster.</p>
+
+<p>The code below is formatted for the Stampede Supercomputing cluster at the University of Texas. All scripts and data inside the &ldquo;cluster&rdquo; folder were run in the stampede environment. See <strong>RunALL.sh</strong> for the job scheduler script.</p>
+
+<ol>
+<li><p>uniqueSxpp.R</p>
+
+<ul>
+<li>This script finds the unique comparisons among all combinations of grid cells. It creates two files, a xytable with matching unique and original grid cells, adn the lat long coord of each cell. This data will be recombined at the end (see combinetable.R)</li>
+</ul></li>
+<li><p>BetaSimBranches.R</p>
+
+<ul>
+<li>Courtesy of Ben Holt at Imperial College London. The idea is that calculating phylogenetic similairity among taxa is slow because the phylo objects are not matrices. We first convert the entire cell by branch structure into a single matrix, and then compute the betadiversity with the next script. This saves alot of time.</li>
+</ul></li>
+<li><p>Beta.R</p>
+
+<ul>
+<li>The main workhourse function, which calls a series of source scripts from Input/BrazilSourceFunctions.R. The unique cell table is broken into pieces, based on the number of cores available, and each core computes the taxonomic, phylogenetic and trait betadiversity combinations on its own piece. The results are written with their unique code to beta_out.csv</li>
+</ul></li>
+<li><p>Combinetable.R</p>
+
+<ul>
+<li>At this point we have all betadiveristy combinations, but we need to match them back to the original cells. We use the xytable created in the first script to merge the data.table structures.</li>
+</ul></li>
+<li><p>AggregateMean.R</p>
+
+<ul>
+<li>We compute basic mean, var, and quantile statistic for each cell and return a file finaldata.csv to send to coauthors.</li>
+</ul></li>
+</ol>
+
+</body>
+
+</html>
+

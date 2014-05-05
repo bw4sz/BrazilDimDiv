@@ -8,7 +8,7 @@ require(reshape,quietly=TRUE,warn.conflicts=FALSE)
 
 #read in data
 
-droppath<-"C:/Users/Jorge/Documents/BrazilDimDiv/cluster"
+droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 
 #set rank number and size.
 .rank<-comm.rank()
@@ -18,8 +18,7 @@ droppath<-"C:/Users/Jorge/Documents/BrazilDimDiv/cluster"
 
 if(.rank==0){
 
-
-dat<-fread(paste(droppath,"beta_out.csv",sep="/"))
+dat<-read.table(paste(droppath,"FinalData.csv",sep="/"),row.names=NULL)
 
 print(head(dat))
 
@@ -64,7 +63,7 @@ meanC<-lapply(comm.index,function(x){
   target<-cells[x]
   
   #find mean
-  cellX<-dat[dat$To %in% target | dat$From %in% target,]
+  cellX<-dat[dat$To.OriginalRow %in% target | dat$From.OriginalRow %in% target,]
   meanCell<-t(sapply(cellX[,c("Sorenson","BetaSim","MNTD")],mean,na.rm=TRUE))
   return(data.frame(cbind(Cell=target,meanCell)))
 })
@@ -83,14 +82,14 @@ meanC<-lapply(comm.index,function(x){
   target<-cells[x]
   
   #find mean
-  cellX<-dat[dat$To %in% target | dat$From %in% target,]
+  cellX<-dat[dat$To.OriginalRow %in% target | dat$From.OriginalRow %in% target,]
   meanCell<-t(sapply(cellX[,c("Sorenson","BetaSim","MNTD")],sd,na.rm=TRUE))
   return(data.frame(cbind(Cell=target,meanCell)))
 })
 
 meanCelltable<-rbind.fill(meanC)
 
-comm.write.table(meanCelltable,"meanCelltable.txt")
+comm.write.table(meanCelltable,"sdCelltable.txt")
 
 
 ##############################################
@@ -113,7 +112,7 @@ quantframe<-lapply(comm.indexAll,function(x){
   traitQ<-ecTrait(target$MNTD)
   phyloQ<-ecTrait(target$BetaSim)
   taxQ<-ecTrait(target$Sorenson)
-  return(data.frame(To=target$To,From=target$From,traitQ,phyloQ,taxQ))
+  return(data.frame(To=target$To.OriginalRow,From=target$From.OriginalRow,traitQ,phyloQ,taxQ))
 })
 
 beta_quantiles<-rbind.fill(quantframe)
