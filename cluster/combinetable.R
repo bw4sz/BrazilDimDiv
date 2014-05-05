@@ -16,7 +16,6 @@ setkey(xytab,id)
 beta_out<-fread("beta_out.csv")
 
 print(head(beta_out))
-setnames(beta_out,colnames(beta_out),c("To","From","Tax","Phylo",'Trait'))
 
 #set keys
 setkey(beta_out,To)
@@ -25,13 +24,17 @@ setkey(beta_out,To)
 head(Tomerge<-xytab[beta_out,])
 
 #rename the columns
-setnames(Tomerge,colnames(Tomerge),c("To.id","To.OriginalRow",'To.x',"To.y","From.id","Sorenson","BetaSim","MNTD"))
+setnames(Tomerge,colnames(Tomerge),c("To.id","To.OriginalRow",'To.x',"To.y","From.id","BetaSim","Sorenson","MNTD"))
 
 #repeat with from
 setkey(Tomerge,From.id)
 
-head(Frommerge<-Tomerge[xytab,])
-setnames(Frommerge,colnames(Frommerge),c("To.id","To.OriginalRow",'To.x',"To.y","From.id","Sorenson","BetaSim","MNTD","From.OriginalRow","From.x","From.y"))
+#buggy, repeat set to character
+xytab[,id:=as.character(xytab$id)]
+setkey(xytab,id)
+
+head(Frommerge<-xytab[Tomerge,])
+setnames(Frommerge,colnames(Frommerge),c("From.id","From.OriginalRow",'From.x',"From.y","To.id","To.OriginalRow","To.x","To.y","BetaSim","Sorenson","MNTD"))
 
 Frommerge<-Frommerge[complete.cases(Frommerge),]
 
