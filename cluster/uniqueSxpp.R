@@ -43,7 +43,7 @@ siteXspp[,id:=.GRP,by=key(siteXspp)]
 xytable<-siteXspp[,colnames(siteXspp) %in% c("x","y","V1","id"),with=F]
 
 #write xytable
-write.csv(xytable,"xytable.csv")
+write.csv(xytable,"Output/xytable.csv")
 
 #Remove xy data
 siteXspp<-siteXspp[, c("x","y","rich","V1"):=NULL,]
@@ -70,4 +70,4 @@ print(rownames(dt.unique)[1:10])
 
 print(paste("dimensions of the unique matrix:",dim(dt.unique)))
 
-write.csv(dt.unique,"Input/UniquesiteXspp.csv",row.names=FALSE)
+write.csv(dt.unique,"Output/UniquesiteXspp.csv",row.names=FALSE)

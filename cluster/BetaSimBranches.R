@@ -14,7 +14,7 @@ setwd(droppath)
 ####Read in data
 #Read in species matrix
 
-siteXspp <- as.matrix(read.csv("Input/UniquesiteXspp.csv"))
+siteXspp <- as.matrix(read.csv("Output/UniquesiteXspp.csv"))
 
 print(siteXspp[1:5,1:5])
 
@@ -116,6 +116,6 @@ print(dim(tcellbr))
 
 
 #Write to file
-save(tcellbr,file="Input/tcellbr.RData")
+save(tcellbr,file="Output/tcellbr.RData")
 
 print("imaged")
