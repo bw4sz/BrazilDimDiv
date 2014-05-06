@@ -27,7 +27,11 @@ droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 setwd(droppath)
 
 ###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
-comm <- fread("Input/UniquesiteXspp.csv",nrow=3000)    # as usual R read.table
+comm <- fread("Input/UniquesiteXspp.csv",nrows=100)    # as usual R read.table
+
+#read in xy data with original rows
+xytab<-fread("Output/xytable.csv")[,-1,with=F]
+setnames(xytab,colnames(xytab),c("V1","x","y","id"))
 
 print("siteXspp table:")
 print(comm[1:5,1:5,with=F])
@@ -78,10 +82,13 @@ for (x in 1:length(IndexFunction)){
   #traits
   traitm<-traits[rownames(traits) %in% colnames(comm.df),]
   
+#xytable
+xytable<-xytab[id %in% rowsTocall]
+
   #Wrap the present
   #create unqiue filename for each rank
   fil<-paste("Data/",x,"Rank.RData",sep="")
-  save(comm.df,Index_Space,tcellbr_sub,traitm,file=fil)
+  save(comm.df,Index_Space,tcellbr_sub,traitm,xytable,file=fil)
   }
   }
 

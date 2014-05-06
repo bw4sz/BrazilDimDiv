@@ -23,10 +23,10 @@ setkey(combsV1,V2)
 combsV2<-xytab[combsV1]
 
 #set names
-setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.x","To.y","To","From.OriginalRow","From.x","From.y","From"))
+setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","To","From.OriginalRow","From.xcord","From.ycord","From"))
 
 #Bring in pairwise betadiveristy data
-beta_out<-fread("beta_out.csv")
+beta_out<-fread("beta_out.csv",nrows=1000)
 print(head(beta_out))
 
 #set keys to match
@@ -38,8 +38,20 @@ combsV2[,From:=as.character(From)]
 
 setkey(combsV2,To,From)
 
+#create combo columns
+combR<-apply(beta_out,1,function(x){paste(sort(c(as.numeric(x[1]),as.numeric(x[2]))),collapse="_")})
+
+
+combRxy<-apply(combsV2,1,function(x){paste(sort(c(as.numeric(x[4]),as.numeric(x[8]))),collapse="_")})
+
+beta_out[,combo:=combR,]
+combsV2[,combo:=combRxy]
+
+setkey(beta_out,combo)
+setkey(combsV2,combo)
+
 head(mergeT<-merge(combsV2,beta_out))
 
 print(dim(mergeT))
 
-write.csv(Frommerge,"FinalData.csv")
+write.csv(mergeT,"Output/FinalData.csv")

@@ -6,14 +6,12 @@ lappend <- function(lst, obj) {
   return(lst)
 }
 
-
 ##Get species list from cell number
 #This helpful function get species list, but make sure commid is in ""
 
 Getsplist<-function(commID){
   names(siteXspp[commID,which(siteXspp[commID,]==1)])
 }
-
 
 #Branch matrix
 
@@ -26,7 +24,7 @@ matpsim <- function(phyl, com) # make sure nodes are labelled and that com and p
   allbr <- dat$edge.length
   names(allbr) <- getEdge(new)
   spp <- colnames(com)
-  
+
   
   cl <- getMPIcluster() # create parellel clusters
   registerDoSNOW(cl)
@@ -35,7 +33,7 @@ matpsim <- function(phyl, com) # make sure nodes are labelled and that com and p
   
   brs <-  foreach(i = spp, .packages = "phylobase") %dopar% #this loop makes a list of branches for each species
 {  
-  
+
   brsp <- vector()
   br   <- as.numeric(rownames(dat[which(dat$label==i),]))
   repeat{
@@ -51,7 +49,7 @@ matpsim <- function(phyl, com) # make sure nodes are labelled and that com and p
 }
   names(brs) <- spp
   
-  
+    
   print("brs")
   
   # create a species by phy branch matrix
@@ -91,7 +89,7 @@ matpsim <- function(phyl, com) # make sure nodes are labelled and that com and p
   print("cell_br")
   rownames(tcellbr) <- rownames(com)
   tcellbr <<- tcellbr
-  return(tcellbr)
+return(tcellbr)
 }
 
 
@@ -119,6 +117,8 @@ MNND <- function(A,B,sp.list,dists)
 
 
 ##Ben Holt's matrix phylo betadiversity function, let's break this into pieces, so its not-redundant on each call
+
+
 matpsim <- function(com,tcellbr) # make sure nodes are labelled and that com and phyl species match
 {
   
@@ -147,7 +147,7 @@ matpsim <- function(com,tcellbr) # make sure nodes are labelled and that com and
 
 nmatsim <- function(cell_b,cell_a,tcellbr) # samp = grid cell of interest
 {
-  
+
   a_br  <- tcellbr[cell_a,]
   b_br <- tcellbr[cell_b,]
   s_br <- rbind(a_br,b_br)
@@ -161,6 +161,7 @@ nmatsim <- function(cell_b,cell_a,tcellbr) # samp = grid cell of interest
   return(psim)
 }
 
+
 # function to give the pres/abs of phy branches withi cell i, broken out from original function
 cellbr <- function(i,spp_br, com)
 {
@@ -171,7 +172,6 @@ cellbr <- function(i,spp_br, com)
   names(i_br) <- colnames(spp_br)
   return(i_br)
 }
-
 ###############################
 #Betadiversity functions
 ###############################
@@ -295,11 +295,10 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr){
 #Wrapper function!
 
 
-betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,rown,traits){
+betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
   
   ##############name the tcell matrix, the scatter function drops the names!!
   
-  rownames(tcellbr)<-rown
   print(rownames(tcellbr)[1:10],all.rank=TRUE)
   
   #make sure the input data matches
@@ -324,7 +323,6 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,rown,traits){
   
   #Within a chunk, loop through the indexes and compute betadiversity
   holder<-apply(toScatterIndex,2,function(x) {
-    print(x)
     #get the comm row
     comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
     out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr)
