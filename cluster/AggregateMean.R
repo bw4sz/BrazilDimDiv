@@ -18,7 +18,7 @@ droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 
 if(.rank==0){
 
-dat<-read.table(paste(droppath,"FinalData.csv",sep="/"),row.names=NULL)
+dat<-read.table(paste(droppath,"Output/FinalData.csv",sep="/"),row.names=NULL)
 
 print(head(dat))
 

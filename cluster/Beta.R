@@ -45,6 +45,8 @@ load(fil)
 
 timeF<-system.time(beta_out<-betaPar.scatter(comm.df,Index_Space,tcellbr_sub,traitm))
 
+beta_out<-data.table(beta_out)
+
 #Return timing argument to console
 print(timeF)
 

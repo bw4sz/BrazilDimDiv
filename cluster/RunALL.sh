@@ -2,10 +2,10 @@
 
 #SBATCH -J GlobalMammals
 #SBATCH -o /home1/02443/bw4sz/GlobalMammals/error.out
-#SBATCH -p development 
-#SBATCH -t 2:00:00
+#SBATCH -p normal 
+#SBATCH -t 12:00:00
 #SBATCH -A TG-DEB130023
-#SBATCH -n 100 # Total tasks
+#SBATCH -n 1000 # Total tasks
 
 #SBATCH --mail-user=benweinstein2010@gmail.com
 #SBATCH --mail-type=begin

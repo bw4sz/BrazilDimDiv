@@ -27,7 +27,7 @@ droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 setwd(droppath)
 
 ###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
-comm <- fread("Input/UniquesiteXspp.csv",nrows=100)    # as usual R read.table
+comm <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
 
 #read in xy data with original rows
 xytab<-fread("Output/xytable.csv")[,-1,with=F]
