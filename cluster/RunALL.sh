@@ -2,10 +2,11 @@
 
 #SBATCH -J GlobalMammals
 #SBATCH -o /home1/02443/bw4sz/GlobalMammals/error.out
-#SBATCH -p normal 
-#SBATCH -t 12:00:00
+#SBATCH -p development 
+#SBATCH -t 2:00:00
 #SBATCH -A TG-DEB130023
-#SBATCH -n 1000 # Total tasks
+#SBATCH -n 10 # Total tasks
+
 
 #SBATCH --mail-user=benweinstein2010@gmail.com
 #SBATCH --mail-type=begin
@@ -26,15 +27,13 @@ echo "Find tcellbr from branches"
 #ibrun  RMPISNOW < BetaSimBranches.R > BetaSimPBD.out
 
 echo "distribute data"
-ibrun Rscript splitData.R > splitData.out
+#ibrun Rscript splitData.R > splitData.out
 
 echo "Betadiversity Analysis"
 
-ibrun Rscript Beta.R > Beta.out
+#ibrun Rscript Beta.R > Beta.out
 
-echo "Aggregate"
-
-ibrun Rscript AggregateMean.R > Mean.out
+ibrun Rscript scatterBeta.R > scatterprint.out
 
 echo "End"
 

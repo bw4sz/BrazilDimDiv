@@ -6,6 +6,34 @@ lappend <- function(lst, obj) {
   return(lst)
 }
 
+
+#memory check
+.ls.objects <- function (pos = 1, pattern, order.by,
+                         decreasing=FALSE, head=FALSE, n=5) {
+  napply <- function(names, fn) sapply(names, function(x)
+    fn(get(x, pos = pos)))
+  names <- ls(pos = pos, pattern = pattern)
+  obj.class <- napply(names, function(x) as.character(class(x))[1])
+  obj.mode <- napply(names, mode)
+  obj.type <- ifelse(is.na(obj.class), obj.mode, obj.class)
+  obj.size <- napply(names, function(x) object.size(x)/1048576)
+  obj.dim <- t(napply(names, function(x)
+    as.numeric(dim(x))[1:2]))
+  vec <- is.na(obj.dim)[, 1] & (obj.type != "function")
+  obj.dim[vec, 1] <- napply(names, length)[vec]
+  out <- data.frame(obj.type, obj.size, obj.dim)
+  names(out) <- c("Type", "Size", "Rows", "Columns")
+  if (!missing(order.by))
+    out <- out[order(out[[order.by]], decreasing=decreasing), ]
+  if (head)
+    out <- head(out, n)
+  out
+}
+# shorthand
+lsos <- function(..., n=10) {
+  .ls.objects(..., order.by="Size", decreasing=TRUE, head=TRUE, n=n)
+}
+
 ##Get species list from cell number
 #This helpful function get species list, but make sure commid is in ""
 
@@ -299,7 +327,7 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
   
   ##############name the tcell matrix, the scatter function drops the names!!
   
-  print(rownames(tcellbr)[1:10],all.rank=TRUE)
+  #print(rownames(tcellbr)[1:10],all.rank=TRUE)
   
   #make sure the input data matches
   if(sum(!rownames(toScatterMatrix) %in% rownames(tcellbr))==0){
@@ -323,6 +351,7 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
   
   #Within a chunk, loop through the indexes and compute betadiversity
   holder<-apply(toScatterIndex,2,function(x) {
+    print(x)
     #get the comm row
     comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
     out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr)

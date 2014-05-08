@@ -1,0 +1,172 @@
+Using data.table to read in raw betadiversity output
+========================================================
+
+The package data.table provides huge opportunities to use sql like syntax to make really efficient queries of large tables.
+
+I'll show an example for how to compute mean and sd on each cell, but this is just the **unique** rows and not the final data. I want to pass you the raw data so that you are not constrained by the types of data output i compute.
+
+We will all talk about it more but Gabriel and I initially brainstormed a few metrics
+  1. Avg betadiversity for taxonomic, phylogenetic, trait for each cell
+  2. Variance in betadiversity for each cell
+  3. Quantile of the mean and standard deviation, this would entail:
+    * Finding steps 1 and 2
+    * Finding the quantile of the mean of each cell to the distribution of means for all cells
+    * Same for variance,
+    *This would be helpful for deliniating 'high' or 'low' betadiversity quantiles
+  4. Compare combinations of betadiversity to env betadiversity
+  5. Comparing combinations of betadiversity to distance
+  6. Overlaying cells on a biome map and looking at within and between
+  
+There is alot more you can do with the raw data, which is why i wanted to show the power of the data.table packages
+
+All of this data is available on the github repo https://github.com/bw4sz/BrazilDimDiv .
+
+```{r}
+setwd("C:/Users/Jorge/Documents/BrazilDimDiv/cluster")
+require(data.table)
+require(reshape)
+#use fread to read in files, this is much much faster than read.csv
+dat<-fread("FinalData.csv")
+head(dat)
+```
+
+There is alot of duplicitious info here, let's clean off some columns and just get what we want.
+
+```{r}
+dat[,c("combo","To.x","From.x","From.y","To.y"):=NULL]
+head(dat)
+```
+
+That's a bit better, deleting columns in data.table is the same as setting them to NULL
+
+We can look at the stucture of the data.table
+```{r}
+str(dat)
+```
+
+Note that the Original.Row columns are integers
+
+
+We can set columns in a similiar format to deleting them, here let's make the original row columns in a character so 1 becomes "1"
+
+```{r}
+dat[,To.OriginalRow:=as.character(To.OriginalRow)]
+
+dat[,From.OriginalRow:=as.character(From.OriginalRow)]
+
+#look at the str again
+str(dat)
+```
+
+Set key
+---
+
+Data.tables have keys which sort the objects
+```{r fig.width=7, fig.height=6}
+setkey(dat,To.OriginalRow)
+```
+
+
+Susbetting
+-------
+
+Data.table subsets tables very very fast. Think of the code inside of the [] as a logical query of the key NOT as a index! This is the important, and difficult to adapt to distinction.
+
+
+```{r}
+#Subsetting is faster when done directly on the key column
+system.time(row1<-dat["1"])
+
+#Asking the column directly is slightly slower (still fast)
+system.time(row1<-dat[To.OriginalRow %in% "1"])
+
+#Asking for two columns, since cell 8 could be in To or From
+system.time(row1<-dat[To.OriginalRow %in% "1"|From.OriginalRow %in% "1"])
+head(row1)
+```
+
+Check out how fast that was remember dat has `r{dim(dat)}` rows, and i'm just on my old desktop.
+
+Columns as functions
+-----
+To get both columns was a little tricky, i had to go to stack overflow: http://stackoverflow.com/questions/23521323/r-data-table-for-computing-summary-stats-across-multiple-columns
+
+```{r}
+dat.B<-dat[,list(c(To.OriginalRow,From.OriginalRow),BetaSim,MNTD,Sorenson)]
+
+#it made a column that combined both To and From into a new column V1, not sure why it names it V1
+setkey(dat.B,V1)
+
+#make a function to compute tests
+stat_test<-function(x){
+  c(mean(x[is.finite(x)]),var(x[is.finite(x)]))
+  }
+
+dat.stat<-dat.B[,c(list(Stat=c("mean","var")),lapply(.SD,stat_test)), by = V1]
+
+m.stat<-melt(dat.stat,id.var=c("V1","Stat"))
+head(cdat<-cast(m.stat,V1~Stat+variable))
+
+#reset to data.table, the above might be slow because we went back to data.frame for casting, maybe this could be made better.
+
+cdat<-data.table(cdat)
+setkey(cdat,V1)
+```
+
+Okay, you may have noticed we lost the x y coordinates, i've tried this in a couple ways and i find it easier just to remerge the data.table. it will also help to show merging in the new data.table syntax
+
+If you need to index that is NOT a logical statement, but gives the name add a ,with=FALSE to get data.frame like indexing.
+
+```{r}
+#get spatial info from the beginning table
+Todat<-dat[,c("To.OriginalRow","To.xcord","To.ycord"),with=F]
+Fromdat<-dat[,c("From.OriginalRow","From.xcord","From.ycord"),with=F]
+
+#name the same colames, data.table style, call the cell V1 to equal to the cdat column name
+setnames(Todat,colnames(Todat),c("V1","X","Y"))
+setnames(Fromdat,colnames(Fromdat),c("V1","X","Y"))
+
+#bind data.tables together
+spdat<-rbind(Todat,Fromdat)
+
+#remove duplicates, nice data.table function
+spd<-unique(spdat)
+
+setkey(spd,V1)
+head(spd)
+```
+
+Merge
+-----
+
+```{r}
+
+#merge is just tomerge[rows]
+mergeD<-spd[cdat]
+
+```
+
+Visualize spatially - Mean Phylogenetic Betadiversity of a Cell
+-----------------
+
+```{r}
+#i think we need a data.frame here, just give it the x y coords and colum n you want to be the values
+
+df<-data.frame(mergeD[,c("X","Y","mean_BetaSim"),with=F])
+
+library(raster)
+# create spatial points data frame
+spg <- df
+coordinates(spg) <- ~ X + Y
+
+# coerce to SpatialPixelsDataFrame
+
+gridded(spg) <- TRUE
+# coerce to raster
+rasterDF <- raster(spg)
+rasterDF
+plot(rasterDF)
+```
+
+Instead of directly plotting values, another idea would be to take the quantiles of these means and then project those into space simulataneously, using the code similiar to ana's risk/climate velocity map so show where taxonomic/phylogenetic/trait are all high/low in a mapped product. Gabriel has that code.
+

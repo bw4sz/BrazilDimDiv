@@ -1,3 +1,6 @@
+require(data.table)
+require(picante)
+
 ###Testing pbdMPI dist functions
 
 require(pbdMPI,quietly=TRUE)
@@ -36,27 +39,33 @@ droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 #droppath<-"C:/Users/Jorge/Documents/BrazilDimDiv/cluster"
 setwd(droppath)
 
-### Examples.
-comm.set.seed(10, diff = TRUE)
+### Initial.
+library(pbdMPI, quietly = TRUE)
+init()
 
-#create some fake data
-X.gbd<-matrix(ncol=10,nrow=10,data=rbinom(100,1,.5))
+
+
+dist(env.pca$x[1:10,])
+
+if(comm.rank()==0){
+  env<-read.csv("Input/siteXsppXenv_1dgr.csv",nrows=1000)
+  
+  tree<-read.tree("/Input//Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
+  
+  env.table<-data.table(env[,colnames(env) %in% c("x","y",paste("bio",1:19,sep=""))])
+  head(colnames(env))
+  
+  env.pca<-prcomp(env.table[,-c(1:2),with=F])
+}
+
+X.gbd <- comm.as.gbd(env.pca$x)
 
 dist.X.common <- comm.dist(X.gbd)
 dist.X.gbd <- comm.dist(X.gbd, return.type = "gbd")
 
-### Verify 1.
-dist.X <- dist(do.call("rbind", allgather(X.gbd)))
-comm.print(all(dist.X == dist.X.common))
-
 ### Verify 2.
 dist.X.df <- do.call("rbind", allgather(dist.X.gbd))
-comm.print(all(dist.X == dist.X.df[, 3]))
-comm.print(dist.X)
-comm.print(dist.X.df)
 
-### Finish.
-finalize()
+comm.print(dist.X.df[1:10,])
 
-#
-finalize()
+comm.write.table(mergeT,"Output/EnvData.csv")
