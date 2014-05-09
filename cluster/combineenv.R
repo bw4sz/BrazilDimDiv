@@ -18,7 +18,7 @@ dat[,combo:=NULL]
 
 #xydist dist table
 
-xydist<-fread("Output/xydist.csv",verbose=TRUE)[,-1,with=F]
+xydist<-data.table(read.csv("Output/xydist.csv",row.names=1))
 
 setnames(xydist,colnames(xydist),c("To.OriginalRow","From.OriginalRow","km"))
 
@@ -33,7 +33,7 @@ print(a)
 
 setkey(xydist,From.OriginalRow,To.OriginalRow)
 
-b<-xydist[dat]
+b<-merge(xydist,dat)
 
 d<-rbind(a,b)
 
