@@ -63,10 +63,6 @@ comm.print(dist.X.gbd[1:10,])
 
 print(dim(dist.X.gbd))
 
-combR<-apply(dist.X.gbd,1,function(x){paste(sort(c(as.numeric(x[1]),as.numeric(x[2]))),collapse="_")})
-
-dist.X.gbd$combo<-combR
-
 comm.write.table(dist.X.gbd,"Output/EnvData.csv",row.names=FALSE)
 
 finalize()

@@ -1,26 +1,44 @@
 require(data.table)
 
 #setwd
-setwd("cluster")
+droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 
 #Betadiversity data
 dat<-fread("Output/FinalData.csv",verbose=TRUE)
 
 print(head(dat))
 
+#remove unwanted columns
+
+dat[,To.x:=NULL]
+dat[,From.x:=NULL]
+dat[,To.y:=NULL]
+dat[,From.y:=NULL]
+dat[,combo:=NULL]
+
+#xydist dist table
+
+xydist<-fread("Output/xydist.csv",verbose=TRUE)[,-1,with=F]
+
+setnames(xydist,colnames(xydist),c("To.OriginalRow","From.OriginalRow","km"))
+
+print(head(xydist))
+
 setkey(dat,To.OriginalRow,From.OriginalRow)
-#env dist table
+setkey(xydist,To.OriginalRow,From.OriginalRow)
 
-env<-fread("Output/EnvData.csv",verbose=TRUE)[,-1,with=F]
+a<-merge(xydist,dat)
 
-setnames(env,colnames(env),c("To.OriginalRow","From.OriginalRow","Env.dist"))
+print(a)
 
-setkey(env,To.OriginalRow,From.OriginalRow)
+setkey(xydist,From.OriginalRow,To.OriginalRow)
 
-#merge betadiversity and env diversity data.
+b<-xydist[dat]
 
-#make sure both tables have the same keys
-tables()
+d<-rbind(a,b)
 
-head(mergeT<-merge(dat,env))
+d<-unique(d)
 
+print(d)
+
+write.csv(d,"BetaDist.csv",row.names=TRUE)

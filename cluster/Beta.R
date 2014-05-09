@@ -98,6 +98,13 @@ head(mergeT<-merge(combsV2,beta_out))
 
 print(dim(mergeT))
 
+#Remove the unique identifiers, they no longer matter and will only confuse us. 
+mergeT[,To.x:=NULL]
+mergeT[,From.x:=NULL]
+mergeT[,To.y:=NULL]
+mergeT[,From.y:=NULL]
+mergeT[,combo:=NULL]
+
 #try writing from all
 comm.write.table(mergeT,"Output/FinalData.csv",row.names=FALSE)
 
