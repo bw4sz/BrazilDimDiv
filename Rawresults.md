@@ -41,7 +41,7 @@ require(reshape)
 
 ```r
 # use fread to read in files, this is much much faster than read.csv
-dat <- fread("FinalData.csv")
+dat <- fread("Output/FinalData.csv")
 head(dat)
 ```
 
@@ -257,7 +257,7 @@ system.time(row1 <- dat["1"])
 
 ```
 ##    user  system elapsed 
-##    0.02    0.00    0.00
+##    0.00    0.00    0.02
 ```
 
 ```r
@@ -404,7 +404,7 @@ mergeD <- spd[cdat]
 ```
 
 
-Visualize spatially
+Visualize spatially - Mean Phylogenetic Betadiversity of a Cell
 -----------------
 
 
@@ -462,4 +462,6 @@ plot(rasterDF)
 
 
 Instead of directly plotting values, another idea would be to take the quantiles of these means and then project those into space simulataneously, using the code similiar to ana's risk/climate velocity map so show where taxonomic/phylogenetic/trait are all high/low in a mapped product. Gabriel has that code.
+
+To do, extract the biome number for antonin from the WWF layers?
 

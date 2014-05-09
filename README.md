@@ -33,6 +33,10 @@ The code below is formatted for the Stampede Supercomputing cluster at the Unive
 3. scatterBeta
   * The main workhourse function, which calls a series of source scripts from Input/BrazilSourceFunctions.R. The unique cell table is broken into pieces, based on the number of cores available, and each core computes the taxonomic, phylogenetic and trait betadiversity combinations on its own piece. The results are recombined with the original xytable and  written with their unique code and original cell number to finaldata.csv
 
+4. envdist.R
+
+  * Perform a pca the environmental space. The distance function is much faster, so we can just parallelize across a few cores. FinalData is recombined by environmental betadiversity based on the xycoordinates. 
+
 **Export the data from the cluster to your local machine**
 
 Run locally using the amazing data.table package we can compute a number of statistics. See stack overflow and the data.table FAQ, which i just learned about last week for examples. *Its worth learning. *

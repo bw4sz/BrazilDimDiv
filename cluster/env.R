@@ -1,5 +1,5 @@
-require(data.table)
-require(picante)
+suppressMessages(require(data.table))
+suppressMessages(require(picante))
 
 ###Testing pbdMPI dist functions
 
@@ -12,7 +12,7 @@ init()
 
 source_github <- function(u) {
   # load package
-  require(RCurl)
+  suppressMessages(require(RCurl))
   
   # read script lines from website and evaluate
   script <- getURL(u, ssl.verifypeer = FALSE)
@@ -39,33 +39,30 @@ droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 #droppath<-"C:/Users/Jorge/Documents/BrazilDimDiv/cluster"
 setwd(droppath)
 
-### Initial.
-library(pbdMPI, quietly = TRUE)
-init()
-
-
-
-dist(env.pca$x[1:10,])
-
 if(comm.rank()==0){
-  env<-read.csv("Input/siteXsppXenv_1dgr.csv",nrows=1000)
-  
-  tree<-read.tree("/Input//Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
-  
+  env<-read.csv("Input/siteXsppXenv_1dgr.csv")
+   
   env.table<-data.table(env[,colnames(env) %in% c("x","y",paste("bio",1:19,sep=""))])
   head(colnames(env))
   
-  env.pca<-prcomp(env.table[,-c(1:2),with=F])
+  env.pca<-prcomp(env.table[,-c(1:2),with=F])$x
+
+} else {
+
+env.pca<-NULL
 }
 
-X.gbd <- comm.as.gbd(env.pca$x)
+X.gbd <- comm.as.gbd(env.pca)
 
 dist.X.common <- comm.dist(X.gbd)
 dist.X.gbd <- comm.dist(X.gbd, return.type = "gbd")
 
 ### Verify 2.
-dist.X.df <- do.call("rbind", allgather(dist.X.gbd))
 
-comm.print(dist.X.df[1:10,])
+comm.print(dist.X.gbd[1:10,])
 
-comm.write.table(mergeT,"Output/EnvData.csv")
+print(dim(dist.X.gbd))
+
+comm.write.table(dist.X.gbd,"Output/EnvData.csv",row.names=FALSE)
+
+finalize()

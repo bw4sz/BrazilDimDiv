@@ -4,18 +4,19 @@ require(data.table)
 setwd("cluster")
 
 #Betadiversity data
-dat<-fread("FinalData.csv")
+dat<-fread("Output/FinalData.csv",verbose=TRUE)
 
 print(head(dat))
 
 #env dist table
 
-env<-read.table("EnvData.csv",nrows=1000)
+env<-fread("Output/EnvData.csv",verbose=TRUE)
 
-env.d<-data.table(env)
+rm(env)
+
+gc()
 
 setnames(env.d,colnames(env.d),c("To","From","Env.dist"))
 
 setkey(env.d,To,From)
 
-fread("Input/")
