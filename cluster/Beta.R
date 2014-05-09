@@ -43,6 +43,8 @@ fil<-paste("Data/",.rank,"Rank.RData",sep="")
 #read in portion of the data
 load(fil)
 
+print(paste("Memory used:",mem()))
+
 timeF<-system.time(beta_out<-betaPar.scatter(comm.df,Index_Space,tcellbr_sub,traitm))
 
 beta_out<-data.table(beta_out)

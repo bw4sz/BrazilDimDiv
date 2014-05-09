@@ -8,15 +8,19 @@ dat<-fread("Output/FinalData.csv",verbose=TRUE)
 
 print(head(dat))
 
+setkey(dat,To.OriginalRow,From.OriginalRow)
 #env dist table
 
-env<-fread("Output/EnvData.csv",verbose=TRUE)
+env<-fread("Output/EnvData.csv",verbose=TRUE)[,-1,with=F]
 
-rm(env)
+setnames(env,colnames(env),c("To.OriginalRow","From.OriginalRow","Env.dist"))
 
-gc()
+setkey(env,To.OriginalRow,From.OriginalRow)
 
-setnames(env.d,colnames(env.d),c("To","From","Env.dist"))
+#merge betadiversity and env diversity data.
 
-setkey(env.d,To,From)
+#make sure both tables have the same keys
+tables()
+
+head(mergeT<-merge(dat,env))
 

@@ -23,6 +23,8 @@ comm.print(comm.rank(), all.rank = TRUE)
   suppressMessages(require(data.table,quietly=TRUE,warn.conflicts=FALSE))
   suppressMessages(require(vegan,quietly=TRUE,warn.conflicts=FALSE))
   
+suppressMessages(source("Input/BrazilSourceFunctions.R"))
+
   ##If running locally set droppath
   
   droppath<-"/home1/02443/bw4sz/GlobalMammals/"
@@ -37,7 +39,7 @@ print("Rank 0 print")
 
  
    ###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
-  comm <- fread("Input/UniquesiteXspp.csv",nrows=100)    # as usual R read.table
+  comm <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
   
   #read in xy data with original rows
   xytab<-fread("Output/xytable.csv")[,-1,with=F]
@@ -73,9 +75,9 @@ print("Rank 0 print")
   
   ###Send the subset matrix
   
-  toScatter<-lapply(1:length(IndexFunction),function(x){
+  toScatter<-list()
+for(x in 1:length(IndexFunction)){
     print(x)
-print(gc())
     #Index of rows to call.
     Index_Space<-z[,IndexFunction[[x]]]
     
@@ -90,7 +92,10 @@ print(gc())
     a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
     tcellbr_sub<-a[,which(!apply(a,2,sum)==0)]
     
-	rm(a)
+rm(a)
+print(lsos())
+print(paste("Memory used:",mem()))
+
     #traits
     traitm<-traits[rownames(traits) %in% colnames(comm.df),]
     
@@ -99,8 +104,9 @@ print(gc())
     
     #Wrap the present
     #create unqiue filename for each rank
-    return(list(comm.df,Index_Space,tcellbr_sub,traitm,xytable))
-  })
+
+    toScatter[[x]]<-list(comm.df,Index_Space,tcellbr_sub,traitm,xytable)
+  }
 
 } else {
  toScatter<-NULL
@@ -114,12 +120,13 @@ print("scatter")
 ##################
 
 ###Define Source Functions
-suppressMessages(source("Input/BrazilSourceFunctions.R"))
 
 comm.df<-toScatterlist[[1]]
 Index_Space<-toScatterlist[[2]]
 tcellbr_sub<-toScatterlist[[3]]
 traitm<-toScatterlist[[4]]
+xytable<-toScatterlist[[5]]
+
 
 timeF<-system.time(beta_out<-betaPar.scatter(comm.df,Index_Space,tcellbr_sub,traitm))
 
@@ -130,22 +137,18 @@ print(timeF)
 
 #match to the xytable
 
-#we can broadcast this to all ranks from rank 0 
-
-xytab<-bcast(xytab,rank.source=0)
-
 # create all combinations of 2
 # return as a data.table with these as columns `V1` and `V2`
 # then count the numbers in each group
-combs<-xytab[, rbindlist(combn(V1,2, 
+combs<-xytable[, rbindlist(combn(V1,2, 
                                  FUN = function(x) as.data.table(as.list(x)), simplify = F))]
 setkey(combs,V1)
-setkey(xytab,V1)
+setkey(xytable,V1)
 
 #combine both ways
-combsV1<-xytab[combs]
+combsV1<-xytable[combs]
 setkey(combsV1,V2)
-combsV2<-xytab[combsV1]
+combsV2<-xytable[combsV1]
 
 #set names
 setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","To","From.OriginalRow","From.xcord","From.ycord","From"))
