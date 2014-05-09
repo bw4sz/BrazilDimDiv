@@ -33,6 +33,13 @@ print(a)
 
 setkey(xydist,From.OriginalRow,To.OriginalRow)
 
+## reverse names
+setnames(xydist,colnames(xydist),c("From.OriginalRow","To.OriginalRow","km"))
+
+# set keys
+setkey(dat,To.OriginalRow,From.OriginalRow)
+setkey(xydist,To.OriginalRow,From.OriginalRow)
+
 b<-merge(xydist,dat)
 
 d<-rbind(a,b)
@@ -41,4 +48,37 @@ d<-unique(d)
 
 print(d)
 
-write.csv(d,"BetaDist.csv",row.names=TRUE)
+write.csv(d,"Output/BetaDist.csv",row.names=TRUE)
+
+env<-data.table(read.table("Output/EnvData.csv",nrows=1000,header=TRUE))
+
+setnames(env,colnames(env),c("To.OriginalRow","From.OriginalRow","envdist"))
+
+print(head(env))
+
+setkey(dat,To.OriginalRow,From.OriginalRow)
+setkey(env,To.OriginalRow,From.OriginalRow)
+
+a<-merge(env,d)
+
+print(a)
+
+setkey(env,From.OriginalRow,To.OriginalRow)
+
+## reverse names
+setnames(env,colnames(env),c("From.OriginalRow","To.OriginalRow","envdist"))
+
+# set keys
+
+setkey(d,To.OriginalRow,From.OriginalRow)
+setkey(env,To.OriginalRow,From.OriginalRow)
+
+b<-merge(env,d)
+
+BetaEnvDist<-rbind(a,b)
+
+BetaEnvDist<-unique(BetaEnvDist)
+
+print(BetaEnvDist)
+
+write.table(BetaEnvDist,"Output/BetaDistEnv.txt",row.names=FALSE)
