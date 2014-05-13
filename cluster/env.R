@@ -63,6 +63,6 @@ comm.print(dist.X.gbd[1:10,])
 
 print(dim(dist.X.gbd))
 
-comm.write.table(dist.X.gbd,"Output/EnvData.csv",row.names=FALSE)
+comm.write.table(dist.X.gbd,"Output/EnvData.txt")
 
 finalize()
