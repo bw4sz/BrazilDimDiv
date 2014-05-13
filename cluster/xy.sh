@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH -J GlobalMammals
-#SBATCH -o /home1/02443/bw4sz/GlobalMammals/error.out
+#SBATCH -o /home1/02443/bw4sz/GlobalMammals/errordist.out
 #SBATCH -p development 
 #SBATCH -t 1:00:00
 #SBATCH -A TG-DEB130023

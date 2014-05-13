@@ -1,91 +1,81 @@
 #Source functions for Global mammal diversity metrics
 
+#Memory function
+# improved list of objects
+
+.ls.objects <- function (pos = 1, pattern, order.by,
+                        decreasing=FALSE, head=FALSE, n=5) {
+    napply <- function(names, fn) sapply(names, function(x)
+                                         fn(get(x, pos = pos)))
+    names <- ls(pos = pos, pattern = pattern)
+    obj.class <- napply(names, function(x) as.character(class(x))[1])
+    obj.mode <- napply(names, mode)
+    obj.type <- ifelse(is.na(obj.class), obj.mode, obj.class)
+    obj.size <- napply(names, object.size)/1048576
+    obj.dim <- t(napply(names, function(x)
+                        as.numeric(dim(x))[1:2]))
+    vec <- is.na(obj.dim)[, 1] & (obj.type != "function")
+    obj.dim[vec, 1] <- napply(names, length)[vec]
+    out <- data.frame(obj.type, obj.size, obj.dim)
+    names(out) <- c("Type", "Size", "Rows", "Columns")
+    if (!missing(order.by))
+        out <- out[order(out[[order.by]], decreasing=decreasing), ]
+    if (head)
+        out <- head(out, n)
+    out
+}
+# shorthand
+
+lsos <- function(..., n=10){
+    .ls.objects(..., order.by="Size", decreasing=TRUE, head=TRUE, n=n)
+}
+
+
+mem <- function(){
+  bit <- 8L * .Machine$sizeof.pointer
+  if (!(bit == 32L || bit == 64L)) {
+    stop("Unknown architecture", call. = FALSE)
+  }
+
+  node_size <- if (bit == 32L) 28L else 56L
+
+  usage <- gc()
+  sum(usage[, 1] * c(node_size, 8)) / (1024 ^ 2)
+}
+
+
+##distance on the earth's surface
+xydist<-function (x1, x2, miles = FALSE, R = NULL) 
+{
+  if (is.null(R)) {
+    if (miles) 
+      R <- 3963.34
+    else R <- 6378.388
+  }
+  coslat1 <- cos((x1[, 2] * pi)/180)
+  sinlat1 <- sin((x1[, 2] * pi)/180)
+  coslon1 <- cos((x1[, 1] * pi)/180)
+  sinlon1 <- sin((x1[, 1] * pi)/180)
+  if (missing(x2)) {
+    pp <- cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1) %*% 
+      t(cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1))
+    return(R * acos(ifelse(abs(pp) > 1, 1 * sign(pp), pp)))
+  }
+  else {
+    coslat2 <- cos((x2[, 2] * pi)/180)
+    sinlat2 <- sin((x2[, 2] * pi)/180)
+    coslon2 <- cos((x2[, 1] * pi)/180)
+    sinlon2 <- sin((x2[, 1] * pi)/180)
+    pp <- cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1) %*% 
+      t(cbind(coslat2 * coslon2, coslat2 * sinlon2, sinlat2))
+    return(R * acos(ifelse(abs(pp) > 1, 1 * sign(pp), pp)))
+  }
+}
+
 ##Append a position to a list
 lappend <- function(lst, obj) {
   lst[[length(lst)+1]] <- obj
   return(lst)
-}
-
-xydist<-function (x1, x2, miles = FALSE, R = NULL) 
-{
-  if (is.null(R)) {
-    if (miles) 
-      R <- 3963.34
-    else R <- 6378.388
-  }
-  coslat1 <- cos((x1[, 2] * pi)/180)
-  sinlat1 <- sin((x1[, 2] * pi)/180)
-  coslon1 <- cos((x1[, 1] * pi)/180)
-  sinlon1 <- sin((x1[, 1] * pi)/180)
-  if (missing(x2)) {
-    pp <- cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1) %*% 
-      t(cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1))
-    return(R * acos(ifelse(abs(pp) > 1, 1 * sign(pp), pp)))
-  }
-  else {
-    coslat2 <- cos((x2[, 2] * pi)/180)
-    sinlat2 <- sin((x2[, 2] * pi)/180)
-    coslon2 <- cos((x2[, 1] * pi)/180)
-    sinlon2 <- sin((x2[, 1] * pi)/180)
-    pp <- cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1) %*% 
-      t(cbind(coslat2 * coslon2, coslat2 * sinlon2, sinlat2))
-    return(R * acos(ifelse(abs(pp) > 1, 1 * sign(pp), pp)))
-  }
-}
-#memory check
-.ls.objects <- function (pos = 1, pattern, order.by,
-                         decreasing=FALSE, head=FALSE, n=5) {
-  napply <- function(names, fn) sapply(names, function(x)
-    fn(get(x, pos = pos)))
-  names <- ls(pos = pos, pattern = pattern)
-  obj.class <- napply(names, function(x) as.character(class(x))[1])
-  obj.mode <- napply(names, mode)
-  obj.type <- ifelse(is.na(obj.class), obj.mode, obj.class)
-  obj.size <- napply(names, function(x) object.size(x)/1048576)
-  obj.dim <- t(napply(names, function(x)
-    as.numeric(dim(x))[1:2]))
-  vec <- is.na(obj.dim)[, 1] & (obj.type != "function")
-  obj.dim[vec, 1] <- napply(names, length)[vec]
-  out <- data.frame(obj.type, obj.size, obj.dim)
-  names(out) <- c("Type", "Size", "Rows", "Columns")
-  if (!missing(order.by))
-    out <- out[order(out[[order.by]], decreasing=decreasing), ]
-  if (head)
-    out <- head(out, n)
-  out
-}
-# shorthand
-lsos <- function(..., n=10) {
-  .ls.objects(..., order.by="Size", decreasing=TRUE, head=TRUE, n=n)
-}
-
-
-#distance on the earth's surface
-xydist<-function (x1, x2, miles = FALSE, R = NULL) 
-{
-  if (is.null(R)) {
-    if (miles) 
-      R <- 3963.34
-    else R <- 6378.388
-  }
-  coslat1 <- cos((x1[, 2] * pi)/180)
-  sinlat1 <- sin((x1[, 2] * pi)/180)
-  coslon1 <- cos((x1[, 1] * pi)/180)
-  sinlon1 <- sin((x1[, 1] * pi)/180)
-  if (missing(x2)) {
-    pp <- cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1) %*% 
-      t(cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1))
-    return(R * acos(ifelse(abs(pp) > 1, 1 * sign(pp), pp)))
-  }
-  else {
-    coslat2 <- cos((x2[, 2] * pi)/180)
-    sinlat2 <- sin((x2[, 2] * pi)/180)
-    coslon2 <- cos((x2[, 1] * pi)/180)
-    sinlon2 <- sin((x2[, 1] * pi)/180)
-    pp <- cbind(coslat1 * coslon1, coslat1 * sinlon1, sinlat1) %*% 
-      t(cbind(coslat2 * coslon2, coslat2 * sinlon2, sinlat2))
-    return(R * acos(ifelse(abs(pp) > 1, 1 * sign(pp), pp)))
-  }
 }
 
 ##Get species list from cell number
@@ -303,6 +293,10 @@ traitF<-function(comm,traits){
      #if variance of trait column is 0, remove trait
      colvar<-!apply(mon_cut,2,var)==0
      mon_cut<-mon_cut[,colvar]
+  if( ncol(mon_cut)==0){
+       melt.MNTD<-data.frame(MNTD=NA,To=rownames(comm)[1],From=rownames(comm)[2])
+       return(melt.MNTD)
+     }
      prc_traits<-stats::prcomp(mon_cut,scale=TRUE)
      newSGdist <- dist(prc_traits$x)
      
@@ -385,7 +379,7 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
   
   #make sure the input data matches
   if(sum(!rownames(toScatterMatrix) %in% rownames(tcellbr))==0){
-    print("Rownames of the matrix match the tcellbr")
+    #print("Rownames of the matrix match the tcellbr")
   } else{
     
     stop("rownames of the matrix do not match the tcellbr")
@@ -394,7 +388,7 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
   
   #correct index
   if(sum(!rownames(toScatterMatrix) %in% unique(as.vector(toScatterIndex)))==0){
-    print("Rownames of the matrix match the index of the matrix")
+    #print("Rownames of the matrix match the index of the matrix")
   } else{
     
     stop("rownames of the matrix do not match index of the matrix")
@@ -405,7 +399,6 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
   
   #Within a chunk, loop through the indexes and compute betadiversity
   holder<-apply(toScatterIndex,2,function(x) {
-    print(x)
     #get the comm row
     comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
     out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr)

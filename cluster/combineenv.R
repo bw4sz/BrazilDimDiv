@@ -4,9 +4,9 @@ require(data.table)
 droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 
 #Betadiversity data
-dat<-fread("Output/FinalData.csv",verbose=TRUE)
+dat<-fread("Output/FinalData.txt")
 
-print(head(dat))
+print(dat)
 
 #remove unwanted columns
 
@@ -18,7 +18,9 @@ dat[,combo:=NULL]
 
 #xydist dist table
 
-xydist<-data.table(read.csv("Output/xydist.csv",row.names=1))
+xydist<-data.table(read.table("Output/xydist.txt",row.names=1,header=TRUE))
+print(xydist)
+
 
 setnames(xydist,colnames(xydist),c("To.OriginalRow","From.OriginalRow","km"))
 
@@ -50,11 +52,12 @@ print(d)
 
 write.csv(d,"Output/BetaDist.csv",row.names=TRUE)
 
-env<-data.table(read.table("Output/EnvData.csv",nrows=1000,header=TRUE))
 
-setnames(env,colnames(env),c("To.OriginalRow","From.OriginalRow","envdist"))
+env<-data.table(read.table("Output/EnvData.txt",header=TRUE,row.names=NULL))
 
-print(head(env))
+setnames(env,colnames(env),c("rowID","To.OriginalRow","From.OriginalRow","envdist"))
+
+print(env)
 
 setkey(dat,To.OriginalRow,From.OriginalRow)
 setkey(env,To.OriginalRow,From.OriginalRow)
@@ -66,7 +69,7 @@ print(a)
 setkey(env,From.OriginalRow,To.OriginalRow)
 
 ## reverse names
-setnames(env,colnames(env),c("From.OriginalRow","To.OriginalRow","envdist"))
+setnames(env,colnames(env),c("rowID","From.OriginalRow","To.OriginalRow","envdist"))
 
 # set keys
 
