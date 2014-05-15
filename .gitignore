@@ -4,7 +4,7 @@
 cluster/Input/siteXspp1dgr.csv
 cluster/beta_out.csv
 Cluster/Input/UniquesiteXspp.csv
-Cluster/Output/EnvData.csv
-Cluster/Output/FinalData.csv
+Cluster/Output/EnvData.txt
+Cluster/Output/FinalData.txt
 Cluster/Output/beta_out.csv
 Cluster/Output/xytable.csv
