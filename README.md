@@ -30,12 +30,25 @@ The code below is formatted for the Stampede Supercomputing cluster at the Unive
 2. BetaSimBranches.R
   * Courtesy of Ben Holt at Imperial College London. The idea is that calculating phylogenetic similairity among taxa is slow because the phylo objects are not matrices. We first convert the entire cell by branch structure into a single matrix, and then compute the betadiversity with the next script. This saves alot of time.
   
-3. scatterBeta
+3. Beta.R
   * The main workhourse function, which calls a series of source scripts from Input/BrazilSourceFunctions.R. The unique cell table is broken into pieces, based on the number of cores available, and each core computes the taxonomic, phylogenetic and trait betadiversity combinations on its own piece. The results are recombined with the original xytable and  written with their unique code and original cell number to finaldata.csv
 
-4. envdist.R
 
-  * Perform a pca the environmental space. The distance function is much faster, so we can just parallelize across a few cores. FinalData is recombined by environmental betadiversity based on the xycoordinates. 
+A second slurm script is used to combine the betadiversity calculations with the distance and env calculations
+see **envdist.sh**
+
+This calls env.R, xydist.R and combinetables.R
+
+
+4. env.R
+ * Computes pairwise env betadiversity on the 19 biocliom variables for all combinations of cells
+
+5. xydist.R
+ * Computes distance on the earth's surface in the molleweide projection for all combinations of cells
+
+6. Combinetables.R
+ *Combines the betadiversity, distance and env tables and saves the output as a RData object. 
+
 
 **Export the data from the cluster to your local machine**
 
