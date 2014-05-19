@@ -26,44 +26,35 @@ setwd("C:/Users/Jorge/Documents/BrazilDimDiv/cluster")
 require(data.table)
 require(reshape)
 #use fread to read in files, this is much much faster than read.csv
-dat<-fread("Output/FinalData.csv")
-head(dat)
+load("C:/Users/Jorge/Dropbox/Dimensions Data/BetaDistEnv.RData")
+head(BetaEnvDist)
 ```
 
-There is alot of duplicitious info here, let's clean off some columns and just get what we want.
+What does the data look like?
 
 ```{r}
-dat[,c("combo","To.x","From.x","From.y","To.y"):=NULL]
-head(dat)
+head(BetaEnvDist)
 ```
 
+
+OriginalRow is the row number in the siteXspp matrix made by gabriel. When i say To and From, i mean a comparison of cell To to cell From, think of it as a direction. Cell 'To' is localted at *To.xcord* (x coordinate), *To.ycord* on the earth's surface, and cell 'From' on *From.xcord* and *From.ycord*. The *envdist* is the Euclidean distance of the PCA of the first 19 bioclim variables. *Km* is the direct Euclidean distance on the Earth's surface. *Betasim* is the phylogenetic betadiveristy, *Sorenson* the taxonomic betadiversity, and *MNTD* (mean nearest taxon distance) is the trait betadiversity.
+
+**The analysis was performed for all pairwise comparisons of a 1 degree earth where terrestrial mammal richness was greater than 1**
 That's a bit better, deleting columns in data.table is the same as setting them to NULL
 
-We can look at the stucture of the data.table
+We can look at the stucture of the **data.table**
 ```{r}
-str(dat)
+str(BetaEnvDist)
 ```
 
-Note that the Original.Row columns are integers
-
-
-We can set columns in a similiar format to deleting them, here let's make the original row columns in a character so 1 becomes "1"
-
-```{r}
-dat[,To.OriginalRow:=as.character(To.OriginalRow)]
-
-dat[,From.OriginalRow:=as.character(From.OriginalRow)]
-
-#look at the str again
-str(dat)
-```
+Part of the brilliance of **data.table** instead of a **data.frame** is the extremely fast searching and structure. Most of this is achieved through a keyed index. Here i set the combination of the To and From cell number to the key. 
 
 Set key
 ---
 
 Data.tables have keys which sort the objects
 ```{r fig.width=7, fig.height=6}
-setkey(dat,To.OriginalRow)
+setkey(BetaEnvDist,To.OriginalRow,From.OriginalRow)
 ```
 
 
@@ -75,17 +66,17 @@ Data.table subsets tables very very fast. Think of the code inside of the [] as 
 
 ```{r}
 #Subsetting is faster when done directly on the key column
-system.time(row1<-dat["1"])
+system.time(row1<-BetaEnvDist[J(1,2)])
 
 #Asking the column directly is slightly slower (still fast)
-system.time(row1<-dat[To.OriginalRow %in% "1"])
+system.time(row1<-BetaEnvDist[To.OriginalRow %in% "1"])
 
 #Asking for two columns, since cell 8 could be in To or From
-system.time(row1<-dat[To.OriginalRow %in% "1"|From.OriginalRow %in% "1"])
+system.time(row1<-BetaEnvDist[To.OriginalRow %in% "1"|From.OriginalRow %in% "1"])
 head(row1)
 ```
 
-Check out how fast that was remember dat has `r{dim(dat)}` rows, and i'm just on my old desktop.
+Check out how fast that was remember BetaEnvDist has `r{dim(BetaEnvDist)}` rows, and i'm just on my old desktop.
 
 Columns as functions
 -----
