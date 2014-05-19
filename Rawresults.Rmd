@@ -1,9 +1,23 @@
+Update on Global Mammal Pairwise Betadiversity Analysis
+============================================
+
+**Author**: Ben Weinstein - Stony Brook University
+
+**Date**: 5/19/2014
+
+**Aim**: To update the NSF group on the status of the underlying dataset for further mammal analysis.
+
+
+**Background**: Similiar underlying data was created in a 2 degree version of this code several months ago by Ben Holt. The goal here was to develop super-computing methods to allow a fuller analysis at (potentially) more biologically meaningful spatial scales. One of the barriers to a finer degree analysis has always been the immense number of pairwise calculations. At 1 degree there were ~12,000 cells on the earth's surface that had terrestrial mammal richness greater than 1. I reduced that 12000 to 10000 unique combinations of species assemblages. I then used parallel computing approaches using the NSF Stampede cluster to compute taxonomic, phylogenetic, trait, environmental and geographic distance betadiversity between all pairwise cells. 
+
+The total analysis took about 3hrs to run across 1000 cores. We should start with the 1 degree analysis to refine the scientific framework moving forward, but i believe a half degree analysis would be feasible. Again, only if it fit our question. 
+
+Below, i walk through the dataset, as well as introduce the **data.table** package, which is critical to handling a input matrix which is 72 million rows. It is not impossible, but needs to be done carefully. I am currently using a relatively new desktop computer with 16gb on ram and either cores to visualize this data. The same result could be achieved on the Wisconsin servers. 
+
 Using data.table to read in raw betadiversity output
-========================================================
+----------------------------------------------
 
 The package data.table provides huge opportunities to use sql like syntax to make really efficient queries of large tables.
-
-I'll show an example for how to compute mean and sd on each cell, but this is just the **unique** rows and not the final data. I want to pass you the raw data so that you are not constrained by the types of data output i compute.
 
 We will all talk about it more but Gabriel and I initially brainstormed a few metrics
   1. Avg betadiversity for taxonomic, phylogenetic, trait for each cell
@@ -21,13 +35,21 @@ There is alot more you can do with the raw data, which is why i wanted to show t
 
 All of this data is available on the github repo https://github.com/bw4sz/BrazilDimDiv .
 
-```{r}
-setwd("C:/Users/Jorge/Documents/BrazilDimDiv/cluster")
+The final dataset is best held as a .RData object rather than writing to .txt file. It can be loaded using the **load()** function. I have pushed it to the dropbox. Under Dimensions Data/ BetaDistEnv.RData.
+
+```{r,warning=FALSE,message=FALSE}
+#setwd("C:/Users/Jorge/Documents/BrazilDimDiv/cluster")
 require(data.table)
 require(reshape)
+require(raster)
+require(rasterVis)
+
+#set knitr options
+opts_chunk$set(dpi=300)
+
 #use fread to read in files, this is much much faster than read.csv
-load("C:/Users/Jorge/Dropbox/Dimensions Data/BetaDistEnv.RData")
-head(BetaEnvDist)
+load("C:/Users/sarah/Downloads/BetaDistEnv.RData")
+BetaEnvDist
 ```
 
 What does the data look like?
@@ -37,12 +59,28 @@ head(BetaEnvDist)
 ```
 
 
-OriginalRow is the row number in the siteXspp matrix made by gabriel. When i say To and From, i mean a comparison of cell To to cell From, think of it as a direction. Cell 'To' is localted at *To.xcord* (x coordinate), *To.ycord* on the earth's surface, and cell 'From' on *From.xcord* and *From.ycord*. The *envdist* is the Euclidean distance of the PCA of the first 19 bioclim variables. *Km* is the direct Euclidean distance on the Earth's surface. *Betasim* is the phylogenetic betadiveristy, *Sorenson* the taxonomic betadiversity, and *MNTD* (mean nearest taxon distance) is the trait betadiversity.
+**OriginalRow** is the row number in the siteXspp matrix made by gabriel. 
+
+When i say To and From, i mean a comparison of cell To to cell From, think of it as a direction.
+
+Cell 'To' is localted at *To.xcord* (x coordinate), *To.ycord* (y coordinate) on the earth's surface, and cell 'From' on *From.xcord* and *From.ycord*. All projections are in the molleweide format, following Carlo's original data. 
+
+The *envdist* is the Euclidean distance of the PCA of the first 19 bioclim variables. 
+
+*Km* is the direct Euclidean distance on the Earth's surface. 
+
+*Betasim* is the **phylogenetic** betadiveristy, 
+
+*Sorenson* the **taxonomic betadiversity**, and 
+
+*MNTD* (mean nearest taxon distance) is the **trait** betadiversity.
 
 **The analysis was performed for all pairwise comparisons of a 1 degree earth where terrestrial mammal richness was greater than 1**
+
 That's a bit better, deleting columns in data.table is the same as setting them to NULL
 
 We can look at the stucture of the **data.table**
+
 ```{r}
 str(BetaEnvDist)
 ```
@@ -66,24 +104,22 @@ Data.table subsets tables very very fast. Think of the code inside of the [] as 
 
 ```{r}
 #Subsetting is faster when done directly on the key column
-system.time(row1<-BetaEnvDist[J(1,2)])
+system.time(row1<-BetaEnvDist[J(1,361)])
 
 #Asking the column directly is slightly slower (still fast)
-system.time(row1<-BetaEnvDist[To.OriginalRow %in% "1"])
+system.time(row1<-BetaEnvDist[To.OriginalRow %in% 1&From.OriginalRow %in% 361])
 
-#Asking for two columns, since cell 8 could be in To or From
-system.time(row1<-BetaEnvDist[To.OriginalRow %in% "1"|From.OriginalRow %in% "1"])
-head(row1)
+row1
 ```
 
-Check out how fast that was remember BetaEnvDist has `r{dim(BetaEnvDist)}` rows, and i'm just on my old desktop.
+Check out how fast that was remember BetaEnvDist has `r{dim(BetaEnvDist)}` rows.
 
 Columns as functions
 -----
 To get both columns was a little tricky, i had to go to stack overflow: http://stackoverflow.com/questions/23521323/r-data-table-for-computing-summary-stats-across-multiple-columns
 
 ```{r}
-dat.B<-dat[,list(c(To.OriginalRow,From.OriginalRow),BetaSim,MNTD,Sorenson)]
+dat.B<-BetaEnvDist[,list(c(To.OriginalRow,From.OriginalRow),BetaSim,MNTD,Sorenson,envdist,km)]
 
 #it made a column that combined both To and From into a new column V1, not sure why it names it V1
 setkey(dat.B,V1)
@@ -95,6 +131,8 @@ stat_test<-function(x){
 
 dat.stat<-dat.B[,c(list(Stat=c("mean","var")),lapply(.SD,stat_test)), by = V1]
 
+head(dat.stat)
+
 m.stat<-melt(dat.stat,id.var=c("V1","Stat"))
 head(cdat<-cast(m.stat,V1~Stat+variable))
 
@@ -104,21 +142,34 @@ cdat<-data.table(cdat)
 setkey(cdat,V1)
 ```
 
+Correlation among means
+-----
+
+```{r}
+corall<-cor(cdat[,-1,with=F],use="complete.obs")
+diag(corall)<-NA
+corall[upper.tri(corall)]<-NA
+round(corall,2)
+```
+
 Okay, you may have noticed we lost the x y coordinates, i've tried this in a couple ways and i find it easier just to remerge the data.table. it will also help to show merging in the new data.table syntax
 
 If you need to index that is NOT a logical statement, but gives the name add a ,with=FALSE to get data.frame like indexing.
 
+Spatial Data
+-----
+
 ```{r}
 #get spatial info from the beginning table
-Todat<-dat[,c("To.OriginalRow","To.xcord","To.ycord"),with=F]
-Fromdat<-dat[,c("From.OriginalRow","From.xcord","From.ycord"),with=F]
+Todat<-BetaEnvDist[,c("To.OriginalRow","To.xcord","To.ycord"),with=F]
+Fromdat<-BetaEnvDist[,c("From.OriginalRow","From.xcord","From.ycord"),with=F]
 
 #name the same colames, data.table style, call the cell V1 to equal to the cdat column name
 setnames(Todat,colnames(Todat),c("V1","X","Y"))
 setnames(Fromdat,colnames(Fromdat),c("V1","X","Y"))
 
 #bind data.tables together
-spdat<-rbind(Todat,Fromdat)
+spdat<-rbindlist(list(Todat,Fromdat))
 
 #remove duplicates, nice data.table function
 spd<-unique(spdat)
@@ -130,22 +181,28 @@ head(spd)
 Merge
 -----
 
-```{r}
+The a[b] syntax is look up rows matching the key of b in the data.table A.
 
+There is also a merge() function that does the exact same thing as with a data.frame. 
+
+```{r}
 #merge is just tomerge[rows]
 mergeD<-spd[cdat]
-
 ```
 
-Visualize spatially - Mean Phylogenetic Betadiversity of a Cell
------------------
+
+Brief data analysis and visualization 
+-----------
+
+Just as a first pass i've standardized the data, removed any outliers (quantile > .995), and plotted it spatially. This is not a suggestion for a particular analysis, but a quick way to understand the remaining steps in data validation and overall patterns.
+
 
 ```{r}
-#i think we need a data.frame here, just give it the x y coords and colum n you want to be the values
+#i think we need a data.frame here, just give it the x y coords and column you want to be the values
+#lets make it a function to repeat across all columns
+makeMap<-function(colnam){
+df<-data.frame(mergeD[,c("X","Y",colnam),with=F])
 
-df<-data.frame(mergeD[,c("X","Y","mean_BetaSim"),with=F])
-
-library(raster)
 # create spatial points data frame
 spg <- df
 coordinates(spg) <- ~ X + Y
@@ -155,11 +212,65 @@ coordinates(spg) <- ~ X + Y
 gridded(spg) <- TRUE
 # coerce to raster
 rasterDF <- raster(spg)
-rasterDF
-plot(rasterDF)
+
+#divide by the 99th quantile and set to 99th quantile
+stand<-quantile(rasterDF,.995)
+
+rasterDF[rasterDF>stand]<-stand
+
+return(rasterDF/stand)}
+
+allMaps<-stack(lapply(colnames(mergeD)[!colnames(mergeD) %in% c("V1","X","Y","mean_km","var_km")],makeMap))
+
+plot(allMaps)
 ```
 
-Instead of directly plotting values, another idea would be to take the quantiles of these means and then project those into space simulataneously, using the code similiar to ana's risk/climate velocity map so show where taxonomic/phylogenetic/trait are all high/low in a mapped product. Gabriel has that code.
+**Remember that there are no apriori spatial outlines in this raster. The plot demonstrates that the code successfully computes betadiversity values in a reasonable manner, since it correctly recreates the shapes of the continents, and the values are relatively smooth across space. This is a very good check on the inner workings of the parallelize code. 
 
-To do, extract the biome number for antonin from the WWF layers?
+Next steps
+------
+
+1. My first inclination is to look at where phylogenetic and trait betadiversity are disconnected. That is where you see 'high' phylo, 'low' trait, or the reverse. I associate high phylogenetic, low trait betadiversity with convergent evolution. We should therefore see these kinds of patterns at *large distance* in similiar environments. The reverse would be low phylo, high trait, which is associated with adaptive radiation. These should be at short distances and dissimiliar environments.
+
+2. Instead of directly plotting the betadiversity values, the idea would be to take the quantiles of these means and then project those into space simulataneously, using the code similiar to ana's risk/climate velocity map so show where taxonomic/phylogenetic/trait are all high/low in a mapped product. Gabriel has that code.
+
+I can show this for the mean data, but the real analysis should be done on the cell by cell comparison of the original data.
+
+```{r}
+cutmaps<-stack(lapply(1:nlayers(allMaps),function(x){
+
+  #cut raster to pieces
+  cutmap<-cut(allMaps[[x]],quantile(allMaps[[x]],c(0,.05,.95,1),right=TRUE))
+
+  #make an attribute table
+cutmap <- ratify(cutmap) 
+rat <- levels(cutmap)[[1]]
+#name the levels
+rat$legend <- c("Low","Med","High")
+levels(cutmap) <- rat
+return(cutmap)
+  }))
+
+#name
+
+names(cutmaps)<-names(allMaps)
+#set theme
+myTheme=rasterTheme(region=brewer.pal('RdBu', n=3))
+
+levelplot(cutmaps,par.settings=myTheme)
+
+```
+
+Again, i want to stress that this analysis makes much more sense on the cell by cell table (BetaDistEnv) than on the aggregate mean, but it helps show my point. 
+
+3. Another approach would be to compute neighborhood cell statistics. In this case, it doesn't matter what the global betadiversity is (eg. mean environment), but how rapid that betadiversity changes over space. This approach would create more intuitive for the env betadiversity. Right now, the 'area' of the biome conflates with how 'endemic' each cell's env is. 
+
+
+There are a myriad of approaches. My hope was to create a foundation dataset with which others could subset or use for subsequent analysis.
+
+Thanks!
+
+Ben
+
+
 
