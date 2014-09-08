@@ -1,125 +1,159 @@
 require(data.table)
-require(gRbase)
 
 #setwd
-droppath<-"/home1/02443/bw4sz/GlobalMammals/"
+droppath<-"/work/02443/bw4sz/GlobalMammals/"
 
-#Betadiversity data
-dat<-fread("Output/FinalData.txt")
+# #Betadiversity data
+# dat<-fread("Output/FinalData.txt")
 
-###Step 1## Match unique ID to rowID and xytable
-############################################################################
-xytable<-fread("Output/xytable.csv")[,-1,with=F]
+# print("Beta")
+# print(dat)
 
-# create all combinations of 2
-# return as a data.table with these as columns `V1` and `V2`
-# then count the numbers in each group
+# ###Step 1## Match unique ID to rowID and xytable
+# ############################################################################
+# xytable<-fread("Output/xytable.csv")[,-1,with=F]
 
-system.time(combs<-combn(xytable$V1,2,simplify = F))
+# print(xytable)
 
-combs<-do.call(rbind,combs)
+# # create all combinations of 2
+# # return as a data.table with these as columns `V1` and `V2`
+# # then count the numbers in each group
 
-combs<-data.table(combs)
+# system.time(combs<-as.data.table(t(combn(xytable$V1,2, simplify = T))))
 
-#Merge xy info, set keys
-setkey(combs,V1)
-setkey(xytable,V1)
+# print(combs)
 
-#combine both ways
-combsV1<-xytable[combs]
-setkey(combsV1,V2)
-combsV2<-xytable[combsV1]
+# print(gc())
 
-#set names
-setnames(combsV2,colnames(combsV2),c("From.OriginalRow","From.xcord","From.ycord","From","To.OriginalRow","To.xcord","To.ycord","To")) #CP inverted to and from because to is 1:1233 and from 1:1234
-#setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","To","From.OriginalRow","From.xcord","From.ycord","From"))
+# #Merge xy info, set keys
+# setkey(combs,V1)
+# setkey(xytable,V1)
 
-print(head(combsV2))
+# #combine both ways
+# combsV1<-xytable[combs]
+# setkey(combsV1,V2)
+# combsV2<-xytable[combsV1]
 
-#########################################################################
-#Merge with betadiversity calculations #CP these datasets should be merged by original row and not on to/from
+# #set names
+# setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","To","From.OriginalRow","From.xcord","From.ycord","From"))
 
-#Bring in pairwise betadiveristy data
-print(head(dat))
+# print("xytable")
+# print(combsV2)
+# rm(combs)
 
-#set keys to match
-#setkey(dat,To,From) #CP moved after set to character
+# #########################################################################
+# #Merge with betadiversity calculations
 
-#set to character, just help makes everyone match
-combsV2[,To.OriginalRow:=as.character(To.OriginalRow)] #CP original rows
-combsV2[,From.OriginalRow:=as.character(From.OriginalRow)] #CP original rows
+# #Bring in pairwise betadiveristy data
+# print(head(dat))
 
-dat[,To.OriginalRow:=as.character(To.OriginalRow)] #CP original rows
-dat[,From.OriginalRow:=as.character(From.OriginalRow)] #CP original rows
+# #set keys to match
+# setkey(dat,To,From)
 
-#now set key
-setkey(dat,To.OriginalRow,From.OriginalRow) #CP original rows
-setkey(combsV2,To.OriginalRow,From.OriginalRow) #CP original rows
+# #set to character, just help makes everyone match
+# combsV2[,To:=as.character(To)]
+# combsV2[,From:=as.character(From)]
 
-#first merge
-mergeL<-merge(combsV2,dat)
+# dat[,To:=as.character(To)]
+# dat[,From:=as.character(From)]
 
-#Switch to and from column name #CP is this needed? (and to goes from 1 to x and from goes from 2 to x+1)
-setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","From","From.OriginalRow","From.xcord","From.ycord","To"))
+# #now set key
+# setkey(combsV2,To,From)
 
-#merge again
-mergeR<-merge(combsV2,dat)
+# #first merge
+# mergeL<-merge(combsV2,dat)
 
-datxy<-rbind(mergeR,mergeL)
+# print("mergeL")
 
-#remove unwanted columns
-datxy[,To:=NULL]
-datxy[,From:=NULL]
+# print(mergeL)
 
-######################################################################
-#Merge with xydistance
-#xydist dist table
+# #Switch to and from column name
+# setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","From","From.OriginalRow","From.xcord","From.ycord","To"))
 
-xydist<-fread("Output/xydist.txt")[,-1,with=F]
-print(xydist)
+# #merge again
+# mergeR<-merge(combsV2,dat)
 
-setnames(xydist,colnames(xydist),c("To.OriginalRow","From.OriginalRow","km"))
+# print("mergeR")
+# print(mergeR)
 
-print(head(xydist))
+# print(gc())
 
-xydist[,To.OriginalRow:=as.character(To.OriginalRow)] # CP set to character 
-xydist[,From.OriginalRow:=as.character(From.OriginalRow)] # CP set to character
+# rm(dat)
+# rm(combsV2)
+# rm(combsV1)
+# rm(xytable)
 
-setkey(datxy,To.OriginalRow,From.OriginalRow)
-setkey(xydist,To.OriginalRow,From.OriginalRow)
+# tables()
 
-a<-merge(xydist,datxy)
+# print(gc())
 
-print(a)
+# datxy<-rbindlist(list(mergeR,mergeL))
 
-## reverse names
-setnames(xydist,colnames(xydist),c("From.OriginalRow","To.OriginalRow","km"))
+# print("datxy")
+# print(datxy)
 
-# set keys
-setkey(xydist,To.OriginalRow,From.OriginalRow)
+# #remove unwanted columns
+# datxy[,To:=NULL]
+# datxy[,From:=NULL]
 
-b<-merge(xydist,datxy)
+# rm(mergeR)
+# rm(mergeL)
+# ls()
 
-d<-rbind(a,b)
+# ######################################################################
+# #Merge with xydistance
+# #xydist dist table
 
-d<-unique(d)
+# xydist<-fread("Output/xydist.txt")[,-1,with=F]
 
-print(d)
+# setnames(xydist,colnames(xydist),c("To.OriginalRow","From.OriginalRow","km"))
 
-write.csv(d,"Output/BetaDist.csv",row.names=TRUE)
+# print(xydist)
+
+# setkey(datxy,To.OriginalRow,From.OriginalRow)
+# setkey(xydist,To.OriginalRow,From.OriginalRow)
+
+# a<-merge(xydist,datxy)
+
+# print(a)
+
+# ## reverse names
+# setnames(xydist,colnames(xydist),c("From.OriginalRow","To.OriginalRow","km"))
+
+# # set keys
+# setkey(xydist,To.OriginalRow,From.OriginalRow)
+
+# b<-merge(xydist,datxy)
+
+# d<-rbindlist(list(a,b))
+
+# rm(a)
+# rm(b)
+# rm(datxy)
+# rm(xydist)
+
+# print(gc())
+
+# d<-unique(d)
+
+# print(d)
+
+# save.image("Output/BetaImage.RData")
+
 ############################################################################
 #Merge with environmental betadiversity
 
-env<-data.table(read.table("Output/EnvData.txt",header=TRUE,row.names=NULL))
+load("Output/BetaImage.RData")
 
-setnames(env,colnames(env),c("To.OriginalRow","From.OriginalRow","envdist")) # CP removed rowID
-env[,To.OriginalRow:=as.character(To.OriginalRow)] # CP set to character 
-env[,From.OriginalRow:=as.character(From.OriginalRow)] # CP set to character
+
+env<-fread("Output/EnvData.txt")[,-1,with=F]
+
+setnames(env,colnames(env),c("To.OriginalRow","From.OriginalRow","envdist"))
 
 print(env)
 
 #set keys
-setkey(d,To.OriginalRow,From.OriginalRow) #CP replaced dat with d
+setkey(d,To.OriginalRow,From.OriginalRow)
 setkey(env,To.OriginalRow,From.OriginalRow)
 
 #merge
@@ -127,10 +161,10 @@ a<-merge(env,d)
 
 print(a)
 
-#setkey(env,From.OriginalRow,To.OriginalRow) #CP delete
+setkey(env,From.OriginalRow,To.OriginalRow)
 
 ## reverse names
-setnames(env,colnames(env),c("rowID","From.OriginalRow","To.OriginalRow","envdist"))
+setnames(env,colnames(env),c("From.OriginalRow","To.OriginalRow","envdist"))
 
 # set keys
 
@@ -139,13 +173,17 @@ setkey(env,To.OriginalRow,From.OriginalRow)
 
 b<-merge(env,d)
 
-BetaEnvDist<-rbind(a,b)
+BetaEnvDist<-rbindlist(list(a,b))
+rm(a)
+rm(b)
+rm(d)
+rm(env)
+print(gc())
 
 BetaEnvDist<-unique(BetaEnvDist)
 
 print(BetaEnvDist)
 
-BetaEnvDist2<-BetaEnvDist[,c(1:10,13:15),,with=F] #CP keep only unique columns
+save.image("Output/BetaDistEnv.RData")
 
-
-write.table(BetaEnvDist,"Output/BetaDistEnv2.txt",row.names=FALSE) #CP name changed
+write.table(BetaEnvDist,"Output/BetaDistEnv.txt",row.names=FALSE)
