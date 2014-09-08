@@ -11,6 +11,7 @@ require(reshape2)
 
 #read in xy data with original rows
 xytab<-read.csv("Output/xytable.csv",row.names=1)
+xytab<-xytab[with(xytab, order(V1)), ] ## CP it has to be sorted by V1 to later find coordinates of each cell
 
 #drop the id row
 xytab<-xytab[,!colnames(xytab) %in% "id"]
@@ -30,7 +31,7 @@ xymelt<-melt(xymat)
 xyout<-xymelt[!is.na(xymelt$value),]
 
 #name the columns
-colnames(xyout)<-c("To","From","km")
+colnames(xyout)<-c("To.OriginalRow","From.OriginalRow","km") #CP names changed this ID corresponds to v1 (original id)
 
 print(dim(xyout))
 

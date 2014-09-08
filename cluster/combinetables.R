@@ -31,33 +31,35 @@ setkey(combsV1,V2)
 combsV2<-xytable[combsV1]
 
 #set names
-setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","To","From.OriginalRow","From.xcord","From.ycord","From"))
+setnames(combsV2,colnames(combsV2),c("From.OriginalRow","From.xcord","From.ycord","From","To.OriginalRow","To.xcord","To.ycord","To")) #CP inverted to and from because to is 1:1233 and from 1:1234
+#setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","To","From.OriginalRow","From.xcord","From.ycord","From"))
 
 print(head(combsV2))
 
 #########################################################################
-#Merge with betadiversity calculations
+#Merge with betadiversity calculations #CP these datasets should be merged by original row and not on to/from
 
 #Bring in pairwise betadiveristy data
 print(head(dat))
 
 #set keys to match
-setkey(dat,To,From)
+#setkey(dat,To,From) #CP moved after set to character
 
 #set to character, just help makes everyone match
-combsV2[,To:=as.character(To)]
-combsV2[,From:=as.character(From)]
+combsV2[,To.OriginalRow:=as.character(To.OriginalRow)] #CP original rows
+combsV2[,From.OriginalRow:=as.character(From.OriginalRow)] #CP original rows
 
-dat[,To:=as.character(To)]
-dat[,From:=as.character(From)]
+dat[,To.OriginalRow:=as.character(To.OriginalRow)] #CP original rows
+dat[,From.OriginalRow:=as.character(From.OriginalRow)] #CP original rows
 
 #now set key
-setkey(combsV2,To,From)
+setkey(dat,To.OriginalRow,From.OriginalRow) #CP original rows
+setkey(combsV2,To.OriginalRow,From.OriginalRow) #CP original rows
 
 #first merge
 mergeL<-merge(combsV2,dat)
 
-#Switch to and from column name
+#Switch to and from column name #CP is this needed? (and to goes from 1 to x and from goes from 2 to x+1)
 setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","From","From.OriginalRow","From.xcord","From.ycord","To"))
 
 #merge again
@@ -79,6 +81,9 @@ print(xydist)
 setnames(xydist,colnames(xydist),c("To.OriginalRow","From.OriginalRow","km"))
 
 print(head(xydist))
+
+xydist[,To.OriginalRow:=as.character(To.OriginalRow)] # CP set to character 
+xydist[,From.OriginalRow:=as.character(From.OriginalRow)] # CP set to character
 
 setkey(datxy,To.OriginalRow,From.OriginalRow)
 setkey(xydist,To.OriginalRow,From.OriginalRow)
@@ -107,12 +112,14 @@ write.csv(d,"Output/BetaDist.csv",row.names=TRUE)
 
 env<-data.table(read.table("Output/EnvData.txt",header=TRUE,row.names=NULL))
 
-setnames(env,colnames(env),c("rowID","To.OriginalRow","From.OriginalRow","envdist"))
+setnames(env,colnames(env),c("To.OriginalRow","From.OriginalRow","envdist")) # CP removed rowID
+env[,To.OriginalRow:=as.character(To.OriginalRow)] # CP set to character 
+env[,From.OriginalRow:=as.character(From.OriginalRow)] # CP set to character
 
 print(env)
 
 #set keys
-setkey(dat,To.OriginalRow,From.OriginalRow)
+setkey(d,To.OriginalRow,From.OriginalRow) #CP replaced dat with d
 setkey(env,To.OriginalRow,From.OriginalRow)
 
 #merge
@@ -120,7 +127,7 @@ a<-merge(env,d)
 
 print(a)
 
-setkey(env,From.OriginalRow,To.OriginalRow)
+#setkey(env,From.OriginalRow,To.OriginalRow) #CP delete
 
 ## reverse names
 setnames(env,colnames(env),c("rowID","From.OriginalRow","To.OriginalRow","envdist"))
@@ -138,4 +145,7 @@ BetaEnvDist<-unique(BetaEnvDist)
 
 print(BetaEnvDist)
 
-write.table(BetaEnvDist,"Output/BetaDistEnv.txt",row.names=FALSE)
+BetaEnvDist2<-BetaEnvDist[,c(1:10,13:15),,with=F] #CP keep only unique columns
+
+
+write.table(BetaEnvDist,"Output/BetaDistEnv2.txt",row.names=FALSE) #CP name changed

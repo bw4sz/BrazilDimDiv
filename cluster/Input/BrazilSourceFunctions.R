@@ -222,13 +222,13 @@ nmatsim <- function(cell_b,cell_a,tcellbr) # samp = grid cell of interest
 
   a_br  <- tcellbr[cell_a,]
   b_br <- tcellbr[cell_b,]
-  s_br <- rbind(a_br,b_br)
+  s_br <- as.matrix(rbind(a_br,b_br))  #CP changed rbind(a_br,b_br) into as.matrix(rbind(a_br,b_br))
   s_br <- as.matrix(s_br[,colSums(s_br) >0])
-  pa_br <- s_br > 0
-  both <- s_br[1,colSums(pa_br > 0)==2]
-  ubr <- s_br[,colSums(pa_br > 0)==1]
-  a_ubr <- as.matrix(ubr)[1,]
-  b_ubr <- as.matrix(ubr)[2,]
+  pa_br <- as.matrix(s_br > 0) #CP changed s_br > 0 into as.matrix(s_br > 0)
+  both <- as.matrix(s_br[1,colSums(pa_br > 0)==2]) #CP changed into as.matrix()
+  ubr <- as.matrix(s_br[,colSums(pa_br > 0)==1]) #CP changed into as.matrix()
+  a_ubr <- as.matrix(ubr)[1,] #CP changed into as.matrix()
+  b_ubr <- as.matrix(ubr)[2,] #CP changed into as.matrix()
   psim <- 1 - (sum(both,na.rm=T)/(min(sum(a_ubr,na.rm=T),sum(b_ubr,na.rm=T))+sum(both,na.rm=T)))
   return(psim)
 }
@@ -261,7 +261,7 @@ taxF<-function(comm){
 #Phylognetic Betadiversity
 phyloF<-function(comm,tcellbr){
   #Compute cell matrix and melt it into a dataframe 
-  betaSIM<-nmatsim(cell_a=rownames(comm)[1],cell_b=rownames(comm)[2],tcellbr)
+  betaSIM<-nmatsim(cell_a=rownames(comm)[1],cell_b=rownames(comm)[2],as.matrix(tcellbr)) #CP changed tcellbr into as.matrix(tcellbr)
   pmatSum<-data.frame(rownames(comm)[1],rownames(comm)[2],betaSIM)
   colnames(pmatSum)<-c("To","From","BetaSim")
   return(pmatSum)
@@ -352,19 +352,19 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr){
   comm<-comm[,which(!apply(comm,2,sum)==0)]
   
   ##Taxonomic Betadiversity
-  sorenson<-taxF(comm)
+  sorenson<-taxF(as.matrix(comm)) ##CP changed comm.d into as.matrix(comm.d)
   
   ######Phylogenetic Betadiversity
   #Betasim from Holt 2013
-  pmatSum<-phyloF(comm,tcellbr)
+  pmatSum<-phyloF(as.matrix(comm),as.matrix(tcellbr)) #CP added as.matrix
   
   #Merge with taxonomic
   Allmetrics0<-merge(pmatSum,sorenson,by=c("To","From"))
     
-  melt.MNTD<-traitF(comm,traits)
+  melt.MNTD1<-traitF(comm,traits) #CP changed name to avoid conflicts with previous "melt.MNTD") #probably not useful :)
   
   #Combine with other metrics into one large dataframe
-  Allmetrics<-merge(Allmetrics0,melt.MNTD,by=c("To","From"))
+  Allmetrics<-merge(Allmetrics0,melt.MNTD1,by=c("To","From")) #CP
   
   return(Allmetrics)}
 
@@ -401,7 +401,7 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
   holder<-apply(toScatterIndex,2,function(x) {
     #get the comm row
     comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
-    out<-beta_all(comm.d,tree=tree,traits=traits,tcellbr)
+    out<-beta_all(comm.d,tree=tree,traits=traits,as.matrix(tcellbr)) ##CP changed tcellbr into as.matrix(tcellbr)
     return(out)
   }
   )
