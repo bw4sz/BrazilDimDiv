@@ -20,20 +20,19 @@ echo "Begin"
 
 echo "Create submatrix of unqiue comparisons"
 
-#Rscript uniqueSxpp.R > unique.out
+Rscript uniqueSxpp.R > unique.out
 
 echo "Find tcellbr from branches"
 
-#ibrun  RMPISNOW < BetaSimBranches.R > BetaSimPBD.out
+ibrun  RMPISNOW < BetaSimBranches.R > BetaSimPBD.out
 
 echo "distribute data"
-#ibrun Rscript splitData.R > splitData.out
+ibrun Rscript splitData.R > splitData.out
 
 echo "Betadiversity Analysis"
 
 ibrun Rscript Beta.R > Beta.out
 
-#ibrun -n 15 -o 15 Rscript scatterBeta.R > scatterprint.out
 
 echo "End"
 
