@@ -31,7 +31,7 @@ comm <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
 
 #read in xy data with original rows
 xytab<-fread("Output/xytable.csv")[,-1,with=F]
-setnames(xytab,colnames(xytab),c("V1","x","y","id"))
+setnames(xytab,colnames(xytab),c("x","y","V1","id")) #CP old names ("V1","x","y","id") did not match names of the table created in uniqueSxpp.R 
 
 print("siteXspp table:")
 print(comm[1:5,1:5,with=F])
