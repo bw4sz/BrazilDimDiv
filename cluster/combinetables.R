@@ -108,8 +108,7 @@ tables()
 print(gc())
 
 datxy<-rbindlist(list(mergeR,mergeL)) #datxy has 72 662 658 rows but combsV2 has 75 614 253 rows
-# CP I still do not understand why we loose combinations in this step
-# it means that some To.OriginalRow/From.OriginalRow pairs do not have a corresponding To/From pair...?
+# it is just because some cells have been removed after creating xytable (cells having less than 2 species)
 
 print("datxy")
 print(datxy)
