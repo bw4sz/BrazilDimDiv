@@ -51,37 +51,54 @@ print(head(dat))
 #set keys to match
 setkey(dat,To,From)
 
+#add all combinations that are 0 because To-From are the same
+Todat<-dat[,"To",with=F]
+Fromdat<-dat[,"From",with=F]
+ToFrom<-unique(rbind(Todat,Fromdat,use.names=F))
+suppdata<-cbind(ToFrom,ToFrom)
+setnames(suppdata,1:2,c("To","From"))
+betas0<-data.table(BetaSim=rep(0,nrow(suppdata)),Sorenson=rep(0,nrow(suppdata)),MNTD=rep(0,nrow(suppdata)))
+suppdata2<-cbind(suppdata,betas0)
+dat2<-rbind(dat,suppdata2)
+rm(dat)
+rm(betas0)
+rm(suppdata)
+rm(suppdata2)
+rm(Fromdat)
+rm(Todat)
+rm(ToFrom)
+gc()
+
 #set to character, just help makes everyone match
 combsV2[,To:=as.character(To)]
 combsV2[,From:=as.character(From)]
 
-dat[,To:=as.character(To)]
-dat[,From:=as.character(From)]
+dat2[,To:=as.character(To)]
+dat2[,From:=as.character(From)]
 
 #now set key
 setkey(combsV2,To,From)
 
 #first merge
-datxy<-merge(combsV2,dat) #CP name changed because I deleted the second merge (see below)
+mergeL<-merge(combsV2,dat2)
 
-print("datxy") #CP idem
+print("mergeL")
 
-print(datxy) #CP idem
+print(mergeL)
 
 #Switch to and from column name 
-#CP if you change to/from you should also change the coordinates and original rows
-#CP and in that case this row is not useful - so I deleted this part
-#setnames(combsV2,colnames(combsV2),c("To.OriginalRow","To.xcord","To.ycord","From","From.OriginalRow","From.xcord","From.ycord","To")) 
+setnames(dat2,colnames(dat2),c("From","To","BetaSim","Sorenson","MNTD"))
+setkey(dat2,To,From)
 
 #merge again
-#mergeR<-merge(combsV2,dat) #CP deleted (see previous rows)
+mergeR<-merge(combsV2,dat2)
 
-#print("mergeR") #CP
-#print(mergeR) #CP
+print("mergeR")
+print(mergeR)
 
 print(gc())
 
-rm(dat)
+rm(dat2)
 rm(combsV2)
 rm(combsV1)
 rm(xytable)
@@ -90,7 +107,9 @@ tables()
 
 print(gc())
 
-#datxy<-rbindlist(list(mergeR,mergeL)) #CP
+datxy<-rbindlist(list(mergeR,mergeL)) #datxy has 72 662 658 rows but combsV2 has 75 614 253 rows
+# CP I still do not understand why we loose combinations in this step
+# it means that some To.OriginalRow/From.OriginalRow pairs do not have a corresponding To/From pair...?
 
 print("datxy")
 print(datxy)
@@ -99,7 +118,7 @@ print(datxy)
 datxy[,To:=NULL]
 datxy[,From:=NULL]
 
-#rm(mergeR) #CP
+rm(mergeR)
 rm(mergeL)
 ls()
 
