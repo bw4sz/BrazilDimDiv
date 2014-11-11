@@ -18,13 +18,13 @@ cd /home1/02443/bw4sz/GlobalMammals/
 
 echo "Begin"
 
-echo "Create submatrix of unqiue comparisons"
+#echo "Create submatrix of unqiue comparisons"
 
-Rscript uniqueSxpp.R > unique.out
+#Rscript uniqueSxpp.R > unique.out
 
-echo "Find tcellbr from branches"
+#echo "Find tcellbr from branches"
 
-ibrun  RMPISNOW < BetaSimBranches.R > BetaSimPBD.out
+#ibrun  RMPISNOW < BetaSimBranches.R > BetaSimPBD.out
 
 echo "distribute data"
 ibrun Rscript splitData.R > splitData.out
