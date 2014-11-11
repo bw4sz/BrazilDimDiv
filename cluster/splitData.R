@@ -43,7 +43,7 @@ print("Tables in memory:")
 tables()
 
 #Bring in relatedness matrix
-coph<-read.csv("Input/cophenetic.csv",row.names=TRUE)
+coph<-read.csv("Input/cophenetic.csv",row.names=1)
 
 #bring in traits
 traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)

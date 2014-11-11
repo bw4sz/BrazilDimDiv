@@ -33,7 +33,6 @@ source_github("https://raw.githubusercontent.com/snoweye/pbdMPI/master/R/comm_to
 droppath<-"/home1/02443/bw4sz/GlobalMammals/"
 
 ##If running locally set dropbox path
-#droppath<-"C:/Users/Jorge/Documents/BrazilDimDiv/cluster"
 setwd(droppath)
 
 ### Examples.

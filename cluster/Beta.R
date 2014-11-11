@@ -10,13 +10,14 @@ init()
 
 
 #Require libraries
-suppressMessages(require(reshape,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(reshape2,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(ggplot2,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(parallel,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(foreach,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(GGally,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(data.table,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(betapart,quietly=TRUE,warn.conflicts=FALSE))
 
 #Everyone say hello
 comm.print(comm.rank(), all.rank = TRUE)

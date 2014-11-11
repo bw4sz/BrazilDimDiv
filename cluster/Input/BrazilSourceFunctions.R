@@ -252,10 +252,10 @@ cellbr <- function(i,spp_br, com)
 ##Taxonomic Betadiversity
 
 taxF<-function(comm){
-  d<-as.matrix(vegdist(comm,binary=TRUE,upper=FALSE,diag=FALSE))
-  sorenson<-melt(d)[melt(upper.tri(d))$value,]
-  colnames(sorenson)<-c("To","From","Sorenson")
-  return(sorenson)}
+  beta<-beta.pair(comm)
+  m2<-melt(as.matrix(beta$beta.sim))
+  colnames(m2)<-c("To","From","Tax_Betasim")
+  return(m2)}
 
 #################################
 #Phylognetic Betadiversity using BetaSim
@@ -407,13 +407,13 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,coph){
   comm<-comm[,which(!apply(comm,2,sum)==0)]
   
   ##Taxonomic Betadiversity
-  sorenson<-taxF(as.matrix(comm)) ##CP changed comm.d into as.matrix(comm.d)
+  tax_betasim<-taxF(as.matrix(comm)) ##CP changed comm.d into as.matrix(comm.d)
   
   ######Phylogenetic Betadiversity using MNTDt
   pmatSum<-phyloMNTDt(as.matrix(comm),coph) #CP added as.matrix
   
   #Merge with taxonomic
-  Allmetrics0<-merge(pmatSum,sorenson,by=c("To","From"))
+  Allmetrics0<-merge(pmatSum,tax_betasim,by=c("To","From"))
     
   melt.MNTD1<-traitF(comm,traits) #CP changed name to avoid conflicts with previous "melt.MNTD") #probably not useful :)
   
