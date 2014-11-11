@@ -16,6 +16,8 @@ Input Data
 
 3. A trait matrix with matching taxonomy to the species distributions
 
+4. A cophenetic matrix of the phylogeny.
+
 Code
 ---------
 
@@ -26,10 +28,11 @@ The code below is formatted for the Stampede Supercomputing cluster at the Unive
 
 1. uniqueSxpp.R
   * This script finds the unique comparisons among all combinations of grid cells. It creates two files, a xytable with matching unique and original grid cells, adn the lat long coord of each cell. This data will be recombined at the end
-  
-2. BetaSimBranches.R
-  * Courtesy of Ben Holt at Imperial College London. The idea is that calculating phylogenetic similairity among taxa is slow because the phylo objects are not matrices. We first convert the entire cell by branch structure into a single matrix, and then compute the betadiversity with the next script. This saves alot of time.
-  
+
+2. splitData.R
+
+To acheive massive parallelization, we can split the ~ 78 million comparisons into chunks to be run seperately and recombined at the end. This is done by breaking the community matrix into pieces and passing the correct species traits and relatedness matrices to each node. 
+
 3. Beta.R
   * The main workhourse function, which calls a series of source scripts from Input/BrazilSourceFunctions.R. The unique cell table is broken into pieces, based on the number of cores available, and each core computes the taxonomic, phylogenetic and trait betadiversity combinations on its own piece. The results are recombined with the original xytable and  written with their unique code and original cell number to finaldata.csv
 
