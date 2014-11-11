@@ -275,7 +275,8 @@ phyloMNTDt<-function(comm,coph){
   
   #subset the data to find intersection of species
   #Trait frame needs to match siteXSpp table
-  coph_cut<-coph[rownames(coph) %in% colnames(comm),]
+  coph_cut1<-coph[rownames(coph) %in% colnames(comm),]
+  coph_cut<-coph_cut1[,colnames(coph_cut1) %in% colnames(comm)]
   
   #species without traits, take them out for just this portion of the analysis, keep the assemblage lsit
   siteXspp_phylo<-comm[,colnames(comm) %in% rownames(coph_cut)]
@@ -300,7 +301,7 @@ phyloMNTDt<-function(comm,coph){
   names(sp.list)<-rownames(siteXspp_phylo)
 
   #walk through each pair of cells and compute phylo betadiversity using MNNTDt
-  sgtraitMNTD <- sapply(rownames(siteXspp_traits),function(i){
+  sgtraitMNTD <- sapply(rownames(siteXspp_phylo),function(i){
     
     #Iterator count
     #print(round(which(rownames(siteXspp_traits)==i)/nrow(siteXspp_traits),3))
