@@ -45,7 +45,7 @@ load(fil)
 
 print(paste("Memory used:",mem()))
 
-timeF<-system.time(beta_out<-betaPar.scatter(comm.df,Index_Space,tcellbr_sub,traitm))
+timeF<-system.time(beta_out<-betaPar.scatter(comm.df,Index_Space,cophm,traitm))
 
 print(head(beta_out))
 

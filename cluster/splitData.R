@@ -42,14 +42,11 @@ setkey(comm,id)
 print("Tables in memory:")
 tables()
 
-#Read in phylogeny
-tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
+#Bring in relatedness matrix
+coph<-read.csv("Input/cophenetic.csv",row.names=TRUE)
 
 #bring in traits
 traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
-
-#Read in cell by branch table made from source
-load(file="Input/tcellbr.RData")
 
 #Create all pairwise combinations of siteXspp
 z<-combn(comm$id,2)
@@ -75,9 +72,8 @@ for (x in 1:length(IndexFunction)){
   rownames(comm.df)<-comm.df$id
   comm.df<-comm.df[,!colnames(comm.df) %in% c("id")]
   
-  ##subset of the tcellbr rownames 
-  a<-tcellbr[rownames(tcellbr) %in% rowsTocall,]
-  tcellbr_sub<-a[,which(!apply(a,2,sum)==0)]
+  ##subset of the relatnedess rownames
+  cophm<-coph[rownames(coph) %in% colnames(comm.df),]
   
   #traits
   traitm<-traits[rownames(traits) %in% colnames(comm.df),]
@@ -88,7 +84,7 @@ xytable<-xytab[id %in% rowsTocall]
   #Wrap the present
   #create unqiue filename for each rank
   fil<-paste("Data/",x,"Rank.RData",sep="")
-  save(comm.df,Index_Space,tcellbr_sub,traitm,xytable,file=fil)
+  save(comm.df,Index_Space,cophm,traitm,xytable,file=fil)
   }
   }
 

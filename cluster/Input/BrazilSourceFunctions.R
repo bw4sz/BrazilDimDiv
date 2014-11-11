@@ -177,12 +177,12 @@ MNND <- function(A,B,sp.list,dists)
   Ann     <- apply(as.matrix(compmat),1,min)
   Bnn     <- apply(as.matrix(compmat),2,min)
   Dnn     <- mean(c(Ann, Bnn))
-  #turn    <- min(c(mean(Ann),mean(Bnn)))
+  turn    <- min(c(mean(Ann),mean(Bnn)))
   #nest    <- Dnn - turn
   #res <- c(Dnn,turn,nest)
-  res<-c(Dnn)
+  res<-c(turn)
   #names(res) <- c("MNND","MNNDturn","MNNDnest")
-  names(res) <- c("MNND")
+  names(res) <- c("MNNDt")
   
   res
 }
@@ -258,7 +258,7 @@ taxF<-function(comm){
   return(sorenson)}
 
 #################################
-#Phylognetic Betadiversity
+#Phylognetic Betadiversity using BetaSim
 phyloF<-function(comm,tcellbr){
   #Compute cell matrix and melt it into a dataframe 
   betaSIM<-nmatsim(cell_a=rownames(comm)[1],cell_b=rownames(comm)[2],as.matrix(tcellbr)) #CP changed tcellbr into as.matrix(tcellbr)
@@ -266,6 +266,61 @@ phyloF<-function(comm,tcellbr){
   colnames(pmatSum)<-c("To","From","BetaSim")
   return(pmatSum)
 }
+
+#################################
+#Phylo Betadiversity using MNTDt
+#################################
+
+phyloMNTDt<-function(comm,coph){
+  
+  #subset the data to find intersection of species
+  #Trait frame needs to match siteXSpp table
+  coph_cut<-coph[rownames(coph) %in% colnames(comm),]
+  
+  #species without traits, take them out for just this portion of the analysis, keep the assemblage lsit
+  siteXspp_phylo<-comm[,colnames(comm) %in% rownames(coph_cut)]
+  
+  #Data Checks
+  if(!is.data.frame(siteXspp_phylo)){
+    melt.MNTD<-data.frame(Phylo_MNTDt=NA,To=rownames(comm)[1],From=rownames(comm)[2])
+    return(melt.MNTD)
+  }
+  
+  if( nrow(coph_cut)<2){
+    melt.MNTD<-data.frame(Phylo_MNTDt=NA,To=rownames(comm)[1],From=rownames(comm)[2])
+    return(melt.MNTD)
+  }
+  
+  #create sp.list for phylo function
+  sp.list<-lapply(rownames(siteXspp_phylo),function(k){
+    x<-siteXspp_phylo[k,]
+    names(x[which(x==1)])
+  })
+  
+  names(sp.list)<-rownames(siteXspp_phylo)
+
+  #walk through each pair of cells and compute phylo betadiversity using MNNTDt
+  sgtraitMNTD <- sapply(rownames(siteXspp_traits),function(i){
+    
+    #Iterator count
+    #print(round(which(rownames(siteXspp_traits)==i)/nrow(siteXspp_traits),3))
+    
+    #set iterator
+    A<-i
+    
+    #
+    out<-lapply(rownames(siteXspp_phylo)[1:(which(rownames(siteXspp_phylo) == i))], function(B) {MNND(A,B,sp.list=sp.list,dists=coph_cut)})
+    names(out)<-rownames(siteXspp_phylo)[1:(which(rownames(siteXspp_phylo) == i))]
+    return(out)
+  })
+  
+  #name phylo matrix
+  names(sgtraitMNTD) <- rownames(siteXspp_phylo)
+  melt.MNTD<-melt(sgtraitMNTD)
+  colnames(melt.MNTD)<-c("Phylo_MNTDt","To","From")
+  return(melt.MNTD)
+}
+
 
 #################################
 #Trait Betadiversity
@@ -346,7 +401,7 @@ traitF<-function(comm,traits){
 
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
-beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr){
+beta_all<-function(comm=comm,tree=tree,traits=traits,coph){
   
   #remove all species with no records in the row
   comm<-comm[,which(!apply(comm,2,sum)==0)]
@@ -354,9 +409,8 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr){
   ##Taxonomic Betadiversity
   sorenson<-taxF(as.matrix(comm)) ##CP changed comm.d into as.matrix(comm.d)
   
-  ######Phylogenetic Betadiversity
-  #Betasim from Holt 2013
-  pmatSum<-phyloF(as.matrix(comm),as.matrix(tcellbr)) #CP added as.matrix
+  ######Phylogenetic Betadiversity using MNTDt
+  pmatSum<-phyloMNTDt(as.matrix(comm),coph) #CP added as.matrix
   
   #Merge with taxonomic
   Allmetrics0<-merge(pmatSum,sorenson,by=c("To","From"))
@@ -371,20 +425,7 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,tcellbr){
 #Wrapper function!
 
 
-betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
-  
-  ##############name the tcell matrix, the scatter function drops the names!!
-  
-  #print(rownames(tcellbr)[1:10],all.rank=TRUE)
-  
-  #make sure the input data matches
-  if(sum(!rownames(toScatterMatrix) %in% rownames(tcellbr))==0){
-    #print("Rownames of the matrix match the tcellbr")
-  } else{
-    
-    stop("rownames of the matrix do not match the tcellbr")
-    
-  }
+betaPar.scatter<-function(toScatterMatrix,toScatterIndex,coph,traits){
   
   #correct index
   if(sum(!rownames(toScatterMatrix) %in% unique(as.vector(toScatterIndex)))==0){
@@ -401,7 +442,7 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,tcellbr,traits){
   holder<-apply(toScatterIndex,2,function(x) {
     #get the comm row
     comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
-    out<-beta_all(comm.d,tree=tree,traits=traits,as.matrix(tcellbr)) ##CP changed tcellbr into as.matrix(tcellbr)
+    out<-beta_all(comm.d,tree=tree,traits=traits,coph)
     return(out)
   }
   )
