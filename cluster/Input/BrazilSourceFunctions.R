@@ -402,7 +402,7 @@ traitF<-function(comm,traits){
 
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
-beta_all<-function(comm=comm,tree=tree,traits=traits,coph){
+beta_all<-function(comm=comm,tree=tree,traits=traits,coph=coph){
   
   #remove all species with no records in the row
   comm<-comm[,which(!apply(comm,2,sum)==0)]
@@ -411,7 +411,7 @@ beta_all<-function(comm=comm,tree=tree,traits=traits,coph){
   tax_betasim<-taxF(as.matrix(comm)) ##CP changed comm.d into as.matrix(comm.d)
   
   ######Phylogenetic Betadiversity using MNTDt
-  pmatSum<-phyloMNTDt(as.matrix(comm),coph) #CP added as.matrix
+  pmatSum<-phyloMNTDt(comm,coph)
   
   #Merge with taxonomic
   Allmetrics0<-merge(pmatSum,tax_betasim,by=c("To","From"))
@@ -443,7 +443,7 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,coph,traits){
   holder<-apply(toScatterIndex,2,function(x) {
     #get the comm row
     comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
-    out<-beta_all(comm.d,tree=tree,traits=traits,coph)
+    out<-beta_all(comm.d,tree=tree,traits=traits,coph=coph)
     return(out)
   }
   )
