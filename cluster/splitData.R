@@ -52,6 +52,9 @@ coph<-read.csv("Input/cophenetic.csv",row.names=1)
 #bring in traits
 traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
 
+#bring in trait distance matrix
+traitdistance<-read.csv("Input/traitdistance.csv",row.names=1)
+
 #Create all pairwise combinations of siteXspp
 z<-combn(comm$id,2)
 
@@ -79,8 +82,8 @@ for (x in 1:length(IndexFunction)){
   ##subset of the relatnedess rownames
   cophm<-coph[rownames(coph) %in% colnames(comm.df),]
   
-  #traits
-  traitm<-traits[rownames(traits) %in% colnames(comm.df),]
+  #trait distance matrix
+  traitm<-traitdistance[rownames(traitdistance) %in% colnames(comm.df),]
   
 #xytable
 xytable<-xytab[id %in% rowsTocall]
