@@ -24,7 +24,7 @@ MNND <- function(A,B,sp.list,dists)
 
   Asp     <- sp.list[[A]]
   Bsp     <- sp.list[[B]]
-  compmat <- dists[Asp,Bsp]
+  compmat <- dists[J(Asp),Bsp,with=F]
   Ann     <- apply(as.matrix(compmat),1,min)
   Bnn     <- apply(as.matrix(compmat),2,min)
   Dnn     <- mean(c(Ann, Bnn))
@@ -61,9 +61,9 @@ taxF<-function(comm){
 #Mean Taxon Betadiversity, turnover only
 ####################################
 
-MNTDt<-function(comm,dists,sp.list,nam="value"){
-  A<-rownames(comm)[1]
-  B<-rownames(comm)[2]
+MNTDt<-function(dists,sp.list,nam="value",ids){
+  A<-as.character(ids[1])
+  B<-as.character(ids[2])
   MNdist<-MNND(A,B,sp.list=sp.list,dists=dists)
   out<-data.frame(To=A,From=B,nam=MNdist)
   colnames(out)[3]<-nam
@@ -71,23 +71,22 @@ MNTDt<-function(comm,dists,sp.list,nam="value"){
 }
 
 ##Compute Dimensions of betadiversity on all functions
-beta_all<-function(comm,traitdist,coph,sp.list.phylo,sp.list.trait){
+beta_all<-function(comm,traitdist,coph,sp.list.phylo,sp.list.trait,ids){
   
   #taxonomic diversity
-  tax<-taxF(comm)
+  cm<-melt(sp.list.phylo[as.character(x)])
+  cm$PA<-1
+  tax<-taxF(dcast(cm,L1~value,value.var='PA',fill = 0)[,-1])[2,]
   
   #name characters
-  tax$To<-as.character(tax$To)
-  tax$From<-as.character(tax$From)
+  tax$To<-as.character(ids[1])
+  tax$From<-as.character(ids[2])
   
   #phylogenetic
-  phylo<-MNTDt(comm,coph,sp.list.phylo,nam="Phylo")
-  
-  #just use column names in the trait matrix
-  comm.trait<-comm[,colnames(comm) %in% rownames(traitdist)]
+  phylo<-MNTDt(dists=coph,sp.list=sp.list.phylo,nam="Phylo",ids)
   
   #trait betadiversity
-  trait<-MNTDt(comm=comm.trait,dists=traitdist,sp.list=sp.list.trait,nam="Trait")
+  trait<-MNTDt(dists=traitdist,sp.list=sp.list.trait,nam="Trait",ids)
   
   #merge together
   merge1<-merge(phylo,tax,by=c("To","From"))
@@ -97,13 +96,12 @@ beta_all<-function(comm,traitdist,coph,sp.list.phylo,sp.list.trait){
   return(Allmetrics)}
 
 #Wrapper function!
-betaPar.scatter<-function(toScatterMatrix,toScatterIndex,coph,traitdist,sp.list.phylo,sp.list.trait){
+betaPar.scatter<-function(toScatterIndex,coph,traitdist,sp.list.phylo,sp.list.trait){
     
   #Within a chunk, loop through the indexes and compute betadiversity
   holder<-apply(toScatterIndex,2,function(x) {
     #get the comm row
-    comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
-    out<-beta_all(comm = comm.d,coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait)
+    out<-beta_all(coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait,ids=x)
     return(out)
   })
   

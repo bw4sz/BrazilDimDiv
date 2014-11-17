@@ -29,9 +29,9 @@ droppath<-"/work/02443/bw4sz/GlobalMammals/"
 setwd(droppath)
 
 ###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
-comm <- fread("~/Input/UniquesiteXspp.csv")    # as usual R read.table
-
-head(comm)
+comm <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
+#make v1 a key column
+setkey(comm,id)
 
 #read in xy data with original rows
 xytab<-fread("Output/xytable.csv")[,-1,with=F]
@@ -40,20 +40,17 @@ setnames(xytab,colnames(xytab),c("V1","x","y","id"))
 print("siteXspp table:")
 print(comm[1:5,1:5,with=F])
 
-#make v1 a key column
-setkey(comm,id)
 
 print("Tables in memory:")
 tables()
 
 #Bring in relatedness matrix
-coph<-read.csv("Input/cophenetic.csv",row.names=1)
-
-#bring in traits
-traits <- read.table("Input/imputedmammals28apr14.txt",header=TRUE,row.names=1)
+coph<-fread("Input/cophenetic.csv")
+setkey(coph,V1)
 
 #bring in trait distance matrix
-traitdistance<-read.csv("Input/traitdistance.csv",row.names=1)
+traitdistance<-fread("Input/traitdistance.csv")
+setkey(traitdistance,V1)
 
 #Create all pairwise combinations of siteXspp
 z<-combn(comm$id,2)
@@ -74,18 +71,26 @@ for (x in 1:length(IndexFunction)){
   
   #row positions
   rowsTocall<-unique(as.vector(Index_Space))
-  comm.df<-data.frame(comm[id %in% rowsTocall])
-  comm.df<-comm.df[,which(!apply(comm.df,2,sum)==0)]
-  rownames(comm.df)<-comm.df$id
-  comm.df<-comm.df[,!colnames(comm.df) %in% c("id")]
+  comm.df<-comm[J(rowsTocall)]
+  setkey(comm.df,id)
   
+  #remove species
+  c2<-names(which(comm.df[,lapply(.SD,sum)==0]))
+  
+  #subset columns
+  comm.df<-comm.df[,!c(c2),with=F]
+    
   ##subset of the relatnedess rownames
-  cophm<-coph[rownames(coph) %in% colnames(comm.df),]
+  coph_keep<-colnames(coph)[colnames(coph) %in% colnames(comm.df)]
+  cophm<-coph[J(colnames(comm.df)),c("V1",coph_keep),with=F]
+  setkey(cophm,V1)
   
   #trait distance matrix
-  traitm<-traitdistance[rownames(traitdistance) %in% colnames(comm.df),]
-  
-#xytable
+  trait_keep<-colnames(traitdistance)[colnames(traitdistance) %in% colnames(comm.df)]
+  traitm<-traitdistance[J(trait_keep),c("V1",trait_keep),with=F]
+  setkey(traitm,V1)
+
+  #xytable
 xytable<-xytab[id %in% rowsTocall]
 
   #Wrap the present

@@ -50,13 +50,18 @@ sp.list.phylo<-apply(comm.df,1,function(x){
   names(x[which(x==1)])
 })
 
-comm.df.trait<-comm.df[,colnames(comm.df) %in% rownames(traitdistance)]
+names(sp.list.phylo)<-comm.df$id
+
+col_keep<-colnames(comm.df)[colnames(comm.df) %in% colnames(traitm)]
+comm.df.trait<-comm.df[,c(col_keep,"id"),with=F]
 
 sp.list.trait<-apply(comm.df.trait,1,function(x){ 
   names(x[which(x==1)])
 })
 
-system.time(beta_out<-betaPar.scatter(toScatterMatrix = comm.df,Index_Space[,1:20],coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait))
+names(sp.list.trait)<-comm.df$id
+
+system.time(beta_out<-betaPar.scatter(toScatterIndex = Index_Space[,1:100],coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait))
 
 print(head(beta_out))
 
