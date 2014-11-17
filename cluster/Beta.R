@@ -24,7 +24,7 @@ comm.print(comm.rank(), all.rank = TRUE)
 
 ##If running locally set droppath
 
-droppath<-"/home1/02443/bw4sz/GlobalMammals/"
+droppath<-"/work/02443/bw4sz/GlobalMammals/"
 
 setwd(droppath)
 
@@ -46,7 +46,7 @@ load(fil)
 
 print(paste("Memory used:",mem()))
 
-timeF<-system.time(beta_out<-betaPar.scatter(comm.df,Index_Space,cophm,traitm))
+timeF<-system.time(beta_out<-betaPar.scatter(toScatterMatrix = comm.df,toScatterIndex = Index_Space,coph=cophm,traits=traitm))
 
 print(head(beta_out))
 
@@ -57,7 +57,7 @@ save.image(paste("Beta/",.rank,"Beta.RData",sep=""))
 print(timeF)
 
 #try writing from all
-comm.write(beta_out,"Output/FinalData.txt",row.names=FALSE)
+comm.write.table(beta_out,"Output/FinalData.txt",row.names=F)
 
 #remove data file
 file.remove(fil)

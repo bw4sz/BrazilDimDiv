@@ -253,7 +253,8 @@ cellbr <- function(i,spp_br, com)
 
 taxF<-function(comm){
   beta<-beta.pair(comm)
-  m2<-melt(as.matrix(beta$beta.sim))
+  j<-beta$beta.sim
+  m2<-melt(as.matrix(j))[3,]
   colnames(m2)<-c("To","From","Tax_Betasim")
   return(m2)}
 
@@ -402,24 +403,24 @@ traitF<-function(comm,traits){
 
 #A phylogeny (tree), siteXspp matrix (comm) and trait matrix (traits) is required. 
 
-beta_all<-function(comm=comm,tree=tree,traits=traits,coph=coph){
+beta_all<-function(comm,traits,coph){
   
   #remove all species with no records in the row
   comm<-comm[,which(!apply(comm,2,sum)==0)]
-  
+
   ##Taxonomic Betadiversity
   tax_betasim<-taxF(as.matrix(comm)) ##CP changed comm.d into as.matrix(comm.d)
-  
+
   ######Phylogenetic Betadiversity using MNTDt
   pmatSum<-phyloMNTDt(comm,coph)
   
   #Merge with taxonomic
   Allmetrics0<-merge(pmatSum,tax_betasim,by=c("To","From"))
-    
-  melt.MNTD1<-traitF(comm,traits) #CP changed name to avoid conflicts with previous "melt.MNTD") #probably not useful :)
+
+  melt.MNTD1<-traitF(comm,traits)
   
   #Combine with other metrics into one large dataframe
-  Allmetrics<-merge(Allmetrics0,melt.MNTD1,by=c("To","From")) #CP
+  Allmetrics<-merge(Allmetrics0,melt.MNTD1,by=c("To","From"))
   
   return(Allmetrics)}
 
@@ -443,7 +444,7 @@ betaPar.scatter<-function(toScatterMatrix,toScatterIndex,coph,traits){
   holder<-apply(toScatterIndex,2,function(x) {
     #get the comm row
     comm.d<-toScatterMatrix[as.character(c(x[1],x[2])),]
-    out<-beta_all(comm.d,tree=tree,traits=traits,coph=coph)
+    out<-beta_all(comm=comm.d,traits=traits,coph=coph)
     return(out)
   }
   )

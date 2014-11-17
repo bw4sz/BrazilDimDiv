@@ -14,7 +14,7 @@ suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
 
 ##If running locally set droppath
 
-droppath<-"/home1/02443/bw4sz/GlobalMammals/"
+droppath<-"/work/02443/bw4sz/GlobalMammals/"
 
 setwd(droppath)
 
@@ -26,9 +26,11 @@ suppressMessages(source("Input/BrazilSourceFunctions.R"))
 ########################################
 ###############Read in data on the node 0
 ########################################
-siteXspp <- fread("Input/siteXspp1dgr.csv")    # as usual R read.table
+siteXspp <- fread("Input/siteXspp_4dgr_moll.csv")    # as usual R read.table
 #siteXspp <- siteXspp[,c(1:2,22:ncol(siteXspp1)),with=F] #CP read only species (in file siteXsppXenv_1dgr.csv)
 print(dim(siteXspp))
+
+#siteXspp<-siteXspp[sample(1:nrow(siteXspp),10),names(siteXspp),with=F]
 
 #make first identification rowname
 siteXspp[,V1:=1:nrow(siteXspp)]
@@ -70,4 +72,4 @@ print(rownames(dt.unique)[1:10])
 
 print(paste("dimensions of the unique matrix:",dim(dt.unique)))
 
-write.csv(dt.unique,"Output/UniquesiteXspp.csv",row.names=FALSE)
+write.csv(dt.unique,"Input/UniquesiteXspp.csv",row.names=FALSE)

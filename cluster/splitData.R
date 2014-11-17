@@ -1,9 +1,10 @@
 #Taxonomic, Phylogenetic and Functional Diversity in Global Mammals
 #Ben Gregory Weinstein, corresponding author - alll code below was writen by BGW
 
+
 ##################
 
-require(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
+library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
 
 init()
 
@@ -16,18 +17,21 @@ suppressMessages(require(parallel,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(foreach,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(GGally,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(require(data.table,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(require(betapart,quietly=TRUE,warn.conflicts=FALSE))
 
 #Everyone say hello
 #comm.print(comm.rank(), all.rank = TRUE)
 
 ##If running locally set droppath
 
-droppath<-"/home1/02443/bw4sz/GlobalMammals/"
+droppath<-"/work/02443/bw4sz/GlobalMammals/"
 
 setwd(droppath)
 
 ###Define Source Functions, does this need to be run and distributed to all nodes, can they source simultaneously
 comm <- fread("Input/UniquesiteXspp.csv")    # as usual R read.table
+
+head(comm)
 
 #read in xy data with original rows
 xytab<-fread("Output/xytable.csv")[,-1,with=F]
