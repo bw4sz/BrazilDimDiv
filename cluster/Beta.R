@@ -46,7 +46,7 @@ fil<-paste("Data/",.rank,"Rank.RData",sep="")
 load(fil)
 
 #Calculate phylogenetic species lists
-sp.list.phylo<-apply(comm.df,1,function(x){ 
+sp.list.phylo<-apply(comm.df[,!colnames(comm.df) %in% "id",with=F],1,function(x){ 
   names(x[which(x==1)])
 })
 
@@ -55,7 +55,7 @@ names(sp.list.phylo)<-comm.df$id
 col_keep<-colnames(comm.df)[colnames(comm.df) %in% colnames(traitm)]
 comm.df.trait<-comm.df[,c(col_keep,"id"),with=F]
 
-sp.list.trait<-apply(comm.df.trait,1,function(x){ 
+sp.list.trait<-apply(comm.df.trait[,!colnames(comm.df.trait) %in% "id",with=F],1,function(x){ 
   names(x[which(x==1)])
 })
 
@@ -69,7 +69,7 @@ print(head(beta_out))
 save.image(paste("Beta/",.rank,"Beta.RData",sep=""))
 
 #Return timing argument to console
-print(timeF)
+#print(timeF)
 
 #try writing from all
 comm.write.table(beta_out,"Output/FinalData.txt",row.names=F)
