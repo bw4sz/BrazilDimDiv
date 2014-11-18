@@ -61,7 +61,7 @@ sp.list.trait<-apply(comm.df.trait[,!colnames(comm.df.trait) %in% "id",with=F],1
 
 names(sp.list.trait)<-comm.df$id
 
-system.time(beta_out<-betaPar.scatter(toScatterIndex = Index_Space[,1:100],coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait))
+system.time(beta_out<-betaPar.scatter(toScatterIndex = Index_Space,coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait))
 
 print(head(beta_out))
 
