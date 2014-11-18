@@ -47,6 +47,7 @@ tables()
 #Bring in relatedness matrix
 coph<-fread("Input/cophenetic.csv")
 setkey(coph,V1)
+setcolorder(coph,c("V1",coph$V1))
 
 #bring in trait distance matrix
 traitdistance<-fread("Input/traitdistance.csv")
