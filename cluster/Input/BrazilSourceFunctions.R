@@ -74,7 +74,7 @@ MNTDt<-function(dists,sp.list,nam="value",ids){
 beta_all<-function(comm,traitdist,coph,sp.list.phylo,sp.list.trait,ids){
   
   #taxonomic diversity
-  cm<-melt(sp.list.phylo[as.character(x)])
+  cm<-melt(sp.list.phylo[as.character(ids)])
   cm$PA<-1
   tax<-taxF(dcast(cm,L1~value,value.var='PA',fill = 0)[,-1])[2,]
   
