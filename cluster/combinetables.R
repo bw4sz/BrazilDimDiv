@@ -57,7 +57,7 @@ Fromdat<-dat[,"From",with=F]
 ToFrom<-unique(rbind(Todat,Fromdat,use.names=F))
 suppdata<-cbind(ToFrom,ToFrom)
 setnames(suppdata,1:2,c("To","From"))
-betas0<-data.table(BetaSim=rep(0,nrow(suppdata)),Sorenson=rep(0,nrow(suppdata)),MNTD=rep(0,nrow(suppdata)))
+betas0<-data.table(Phylo=rep(0,nrow(suppdata)),Tax=rep(0,nrow(suppdata)),Trait=rep(0,nrow(suppdata)))
 suppdata2<-cbind(suppdata,betas0)
 dat2<-rbind(dat,suppdata2)
 rm(dat)
@@ -87,7 +87,7 @@ print("mergeL")
 print(mergeL)
 
 #Switch to and from column name 
-setnames(dat2,colnames(dat2),c("From","To","BetaSim","Sorenson","MNTD"))
+setnames(dat2,colnames(dat2),c("From","To","Phylo","Tax","Trait"))
 setkey(dat2,To,From)
 
 #merge again
