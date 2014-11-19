@@ -35,7 +35,7 @@ setkey(comm,id)
 
 #read in xy data with original rows
 xytab<-fread("Output/xytable.csv")[,-1,with=F]
-setnames(xytab,colnames(xytab),c("V1","x","y","id"))
+setnames(xytab,colnames(xytab),c("x","y","V1","id"))
 
 print("siteXspp table:")
 print(comm[1:5,1:5,with=F])
@@ -84,6 +84,7 @@ for (x in 1:length(IndexFunction)){
   ##subset of the relatnedess rownames
   coph_keep<-colnames(coph)[colnames(coph) %in% colnames(comm.df)]
   cophm<-coph[J(colnames(comm.df)),c("V1",coph_keep),with=F]
+  cophm<-cophm[-1,]
   setkey(cophm,V1)
   
   #trait distance matrix
