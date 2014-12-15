@@ -50,7 +50,7 @@ setkey(coph,V1)
 setcolorder(coph,c("V1",coph$V1))
 
 #bring in trait distance matrix
-traitdistance<-fread("Input/traitdistance.csv")
+traitdistance<-fread("Input/traitdistanceLog.csv")
 setkey(traitdistance,V1)
 
 #Create all pairwise combinations of siteXspp
