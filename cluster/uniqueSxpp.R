@@ -26,7 +26,7 @@ suppressMessages(source("Input/BrazilSourceFunctions.R"))
 ########################################
 ###############Read in data on the node 0
 ########################################
-siteXspp <- fread("Input/siteXspp_4dgr_moll.csv")    # as usual R read.table
+siteXspp <- fread("Input/siteXspp1dgr.csv")    # as usual R read.table
 #siteXspp <- siteXspp[,c(1:2,22:ncol(siteXspp1)),with=F] #CP read only species (in file siteXsppXenv_1dgr.csv)
 print(dim(siteXspp))
 
