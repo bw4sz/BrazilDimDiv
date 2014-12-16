@@ -4,10 +4,14 @@
 
 ##################
 
-library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
+args<-commandArgs(TRUE)
+
+library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)
 
 init()
 
+#set position within the loop
+position_start<-args[1]
 
 #library libraries
 suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE))
@@ -37,7 +41,9 @@ comm.print(paste("Total nodes is:", comm.size()))
 ############ Read in Data
 
 #set rank
-.rank<-comm.rank()+1
+.rank<-comm.rank()+(1+position_start)
+
+paste("Running splits from",position_start," to ",position_start+comm.size())
 
 #rank to filename
 fil<-paste("Data/",.rank,"Rank.RData",sep="")
@@ -66,13 +72,13 @@ system.time(beta_out<-betaPar.scatter(toScatterIndex = Index_Space,coph=cophm,tr
 print(head(beta_out))
 
 #checkpoint, write data if fails
-save.image(paste("Beta/",.rank,"Beta.RData",sep=""))
+#save.image(paste("Beta/",.rank,"Beta.RData",sep=""))
 
 #Return timing argument to console
 #print(timeF)
 
 #try writing from all
-comm.write.table(beta_out,"Output/FinalData.txt",row.names=F)
+comm.write.table(beta_out,"Output/FinalDataLog1dg.txt",row.names=F,append=T)
 
 #remove data file
 file.remove(fil)
