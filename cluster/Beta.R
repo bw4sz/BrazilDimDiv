@@ -5,13 +5,17 @@
 ##################
 
 args<-commandArgs(TRUE)
+position_start<-args[1]
+print(position_start)
+class(position_start)
+position_start<-as.numeric(position_start)
 
 library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)
 
 init()
 
 #set position within the loop
-position_start<-args[1]
+
 
 #library libraries
 suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE))
@@ -78,10 +82,10 @@ print(head(beta_out))
 #print(timeF)
 
 #try writing from all
-comm.write.table(beta_out,"Output/FinalDataLog1dg.txt",row.names=F,append=T)
+comm.write.table(beta_out,"Output/FinalDataLog1dg.txt",row.names=F,append=T,col.names = FALSE)
 
 #remove data file
-file.remove(fil)
+#file.remove(fil)
 
 finalize()
 

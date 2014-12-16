@@ -2,8 +2,8 @@
 
 #SBATCH -J GlobalMammals
 #SBATCH -o /work/02443/bw4sz/GlobalMammals/error.out
-#SBATCH -p normal 
-#SBATCH -t 24:00:00
+#SBATCH -p development 
+#SBATCH -t 2:00:00
 #SBATCH -A TG-DEB130023
 #SBATCH -n 2 # Total tasks
 
@@ -29,10 +29,11 @@ echo "Betadiversity Analysis"
 
 #loop through and append each to the end of the document, it will take longer, but it will use less memory.
 
-for i in '0,2';
+for I in 4 6
 do
-	ibrun Rscript i Beta.R > Beta.out
-done
+ibrun Rscript Beta.R $I >> Beta.out
+done  
+
 
 echo "End"
 
