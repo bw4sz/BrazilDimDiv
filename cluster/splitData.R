@@ -4,7 +4,7 @@
 
 ##################
 
-library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE)
+library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=F)
 
 init()
 

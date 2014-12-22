@@ -5,6 +5,7 @@ droppath<-"/work/02443/bw4sz/GlobalMammals/"
 
 # #Betadiversity data ##Cp from here to Line 146 it was deleted so I removed all the "#"
 dat<-fread("Output/FinalData.txt")
+setnames(dat,colnames(dat),c("To","From","Phylo","Tax","Trait"))
 
 print("Beta")
 print(dat)

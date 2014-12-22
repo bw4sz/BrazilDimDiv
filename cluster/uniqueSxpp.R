@@ -30,7 +30,7 @@ siteXspp <- fread("Input/siteXspp1dgr.csv")    # as usual R read.table
 #siteXspp <- siteXspp[,c(1:2,22:ncol(siteXspp1)),with=F] #CP read only species (in file siteXsppXenv_1dgr.csv)
 print(dim(siteXspp))
 
-#siteXspp<-siteXspp[sample(1:nrow(siteXspp),10),names(siteXspp),with=F]
+#siteXspp<-siteXspp[sample(1:nrow(siteXspp),10),names(siteXspp),with=F] #for a try
 
 #make first identification rowname
 siteXspp[,V1:=1:nrow(siteXspp)]
