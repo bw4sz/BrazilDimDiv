@@ -64,8 +64,25 @@ sampleS<-function(x,ident){
   # Get species for Assemblage B
   B<-sample(splist,size=row[[2]],replace=F)
   
+  assemb<-list(A,B)
+  names(assemb)<-c("A","B")
+  
   #Format the data frame
+  assemblages<-melt(assemb)
+  assemblages<-as.data.frame.array(t(table(assemblages)))
+  return(assemblages)
 }
+
+#This function will now create a sample assemblage with the correct richness based on the rows of the table ident.
+
+#For example
+ident[479,]
+
+#Comparison of a assemblage of 78 and of 4.
+apply(sampleS(479,ident),1,sum)
+
+#works
+
 
 library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)
 
