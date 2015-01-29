@@ -76,7 +76,7 @@ system.time(beta_out<-betaPar.scatter(toScatterIndex = Index_Space,coph=cophm,tr
 print(head(beta_out))
 
 #checkpoint, write data if fails
-#save.image(paste("Beta/",.rank,"Beta.RData",sep=""))
+save.image(paste("Beta/",.rank,"Beta.RData",sep=""))
 
 #Return timing argument to console
 #print(timeF)
