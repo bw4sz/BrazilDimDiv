@@ -1,17 +1,45 @@
-#Find unique richnesses in the matrix
+library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)
 
-#Require libraries
-suppressMessages(require(data.table,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
+init()
+
+#set position within the loop
+comm.print(paste("Total nodes is:", comm.size()))
+
+#set rank
+.rank<-comm.rank()+1
+
+#library libraries
+suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(library(picante,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(library(ggplot2,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(library(parallel,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(library(foreach,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(library(GGally,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(library(data.table,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(library(betapart,quietly=TRUE,warn.conflicts=FALSE))
+suppressMessages(library(plyr,quietly=TRUE,warn.conflicts=FALSE))
+
+#Everyone say hello
+comm.print(comm.rank(), all.rank = TRUE)
 
 ##set path
 #droppath<-"/work/02443/bw4sz/GlobalMammals/"
 droppath<-"C:/Users/Ben/Documents/BrazilDimDiv/cluster/"
 setwd(droppath)
 
-########################################
-###############Read in data on the node 0
-########################################
+###Define Source Functions
+suppressMessages(source("Input/BrazilSourceFunctions.R"))
+
+###Read in data
+
+#Bring in relatedness matrix
+coph<-fread("Input/cophenetic.csv")
+setkey(coph,V1)
+setcolorder(coph,c("V1",coph$V1))
+
+#bring in trait distance matrix
+traitdistance<-fread("Input/traitdistanceLog.csv")
+setkey(traitdistance,V1)
 
 ##Read siteXspp table
 siteXspp <- fread("Input/siteXspp1dgr.csv")
@@ -35,9 +63,6 @@ siteXspp<-siteXspp[rich>1]
 #Keep only original row (V1) and richness
 siteXrich<-siteXspp[,colnames(siteXspp) %in% c("V1","rich"),with=F]
 
-#write siteXrich table
-write.csv(siteXrich,"Output/siteXrich.csv")
-
 #remove duplicates
 dt.unique<-unique(siteXrich)
 
@@ -48,75 +73,64 @@ rm(siteXspp)
 
 ##We need a null model from every richness type to every other richness type. Including to itself.
 ident<-expand.grid(dt.unique$rich,dt.unique$rich)
-dim(ident)
-#should be roughly
-200* 200
 
-#looks good.
+#Chunk the identity table based on the number of ranks
+IndexFunction<-splitIndices(nrow(ident),50)
 
-#Okay so now build a function that randomly draws that many species for each community and computes the metric
-x<-1
+#Which rank am I?
+myIndexes<-IndexFunction[[.rank]]
 
-sampleS<-function(x,ident){
-  row<-ident[x,]
-  #Get species for assemblage A
-  A<-sample(splist,size=row[[1]],replace=F)
-  # Get species for Assemblage B
-  B<-sample(splist,size=row[[2]],replace=F)
-  
-  assemb<-list(A,B)
-  names(assemb)<-c("A","B")
-  
-  #Format the data frame
-  assemblages<-melt(assemb)
-  assemblages<-as.data.frame.array(t(table(assemblages)))
-  return(assemblages)
+##############Make replicates of your rank###############
+#For each row of null assemblages, make 100 samples
+outA<-list()
+for (g in 1:100){
+  outA[[g]]<-sampleS(myIndexes[1],ident)  
 }
 
-#This function will now create a sample assemblage with the correct richness based on the rows of the table ident.
+comm_df<-rbind.fill(outA)
+#Fill the absences to 0
+comm_df[is.na(comm_df)]<-0
 
-#For example
-ident[479,]
+#This would need to be done for every position in myIndexes, and they use betascatter to walk through the combinations,
+#I have to stop here for the moment.
 
-#Comparison of a assemblage of 78 and of 4.
-apply(sampleS(479,ident),1,sum)
+#Calculate phylogenetic species lists
+sp.list.phylo<-apply(comm.df[,!colnames(comm.df) %in% "id",with=F],1,function(x){ 
+  names(x[which(x==1)])
+})
 
-#works
+names(sp.list.phylo)<-comm.df$id
 
+col_keep<-colnames(comm.df)[colnames(comm.df) %in% colnames(traitm)]
+comm.df.trait<-comm.df[,c(col_keep,"id"),with=F]
 
-library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)
+sp.list.trait<-apply(comm.df.trait[,!colnames(comm.df.trait) %in% "id",with=F],1,function(x){ 
+  names(x[which(x==1)])
+})
 
-init()
+names(sp.list.trait)<-comm.df$id
 
-#set position within the loop
+system.time(beta_out<-betaPar.scatter(toScatterIndex = Index_Space,coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait))
 
+print(head(beta_out))
 
-#library libraries
-suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(picante,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(ggplot2,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(parallel,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(foreach,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(GGally,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(data.table,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(betapart,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(plyr,quietly=TRUE,warn.conflicts=FALSE))
+#checkpoint, write data if fails
+save.image(paste("Beta/",.rank,"Randomization.RData",sep=""))
 
-#Everyone say hello
-comm.print(comm.rank(), all.rank = TRUE)
+#Return timing argument to console
+#print(timeF)
 
-##If running locally set droppath
+#try writing from all
+comm.write.table(beta_out,"Output/Randomization.txt",row.names=F,append=T,col.names = FALSE)
 
-droppath<-"/work/02443/bw4sz/GlobalMammals/"
+#remove data file
+#file.remove(fil)
 
-setwd(droppath)
+finalize()
 
-###Define Source Functions
-suppressMessages(source("Input/BrazilSourceFunctions.R"))
+###############################
+#Data Generation Complete
+###############################
 
-comm.print(paste("Total nodes is:", comm.size()))
-
-############ Read in Data
-
-#set rank
-.rank<-comm.rank()+(1+position_start)
+#now we run that pair 
+out<-beta_all(coph=coph,traitdist=traitdistance,sp.list.phylo = splist,sp.list.trait = sp.list.trait,ids=x)
