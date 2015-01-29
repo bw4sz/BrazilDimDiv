@@ -19,6 +19,13 @@ siteXspp <- fread("Input/siteXspp1dgr.csv")
 #make first identification rowname
 siteXspp[,V1:=1:nrow(siteXspp)]
 
+#match with phylogeny
+tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
+siteXspp<-siteXspp[,colnames(siteXspp) %in% c(tree$tip.label,"V1"),with=F]
+
+#calculate richness
+siteXspp$rich<-rowSums(siteXspp[,!colnames(siteXspp) %in% "V1",with=F])
+
 #setkey to richness
 setkey(siteXspp,rich)
 
@@ -36,12 +43,6 @@ dt.unique<-unique(siteXrich)
 
 #Get entire species list
 splist<-colnames(siteXspp[, c("x","y","rich","V1"):=NULL,])
-
-#read in phylogeny
-tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
-
-#remove species in the splist that are not in phylogeny
-splist<-splist[splist %in% c(tree$tip.label)]
 
 rm(siteXspp)
 
