@@ -67,7 +67,7 @@ siteXrich<-siteXspp[,colnames(siteXspp) %in% c("V1","rich"),with=F]
 dt.unique<-unique(siteXrich)
 
 #Get entire species list
-splist<-colnames(siteXspp[, c("x","y","rich","V1"):=NULL,])
+splist<-colnames(siteXspp[, c("rich","V1"):=NULL,])
 
 rm(siteXspp)
 
