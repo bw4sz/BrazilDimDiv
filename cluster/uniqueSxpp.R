@@ -52,11 +52,6 @@ siteXspp<-siteXspp[, c("x","y","rich","V1"):=NULL,]
 
 dt.unique<-subset(siteXspp,!duplicated(siteXspp))
 
-#Remove lines with less than 2 species
-richness<-rowSums(dt.unique[,!colnames(dt.unique) %in% "id",with=F])
-keep<-dt.unique[richness>1,"id",with=F]$id
-dt.unique<-dt.unique[keep]
-
 #Get entire species list
 splist<-colnames(dt.unique)
 
@@ -65,6 +60,11 @@ tree<-read.tree("Input/Sep19_InterpolatedMammals_ResolvedPolytomies.nwk")
 
 #remove species in the siteXspp that are not in phylogeny
 dt.unique<-dt.unique[,colnames(dt.unique) %in% c(tree$tip.label,"id"),with=F]
+
+#Remove lines with less than 2 species
+richness<-rowSums(dt.unique[,!colnames(dt.unique) %in% "id",with=F])
+keep<-dt.unique[richness>1,"id",with=F]$id
+dt.unique<-dt.unique[keep]
 
 print(dim(dt.unique))
 
