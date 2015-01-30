@@ -114,10 +114,14 @@ betaPar.scatter<-function(toScatterIndex,coph,traitdist,sp.list.phylo,sp.list.tr
 sampleS<-function(x,ident){
   row<-ident[x,]
   #Get species for assemblage A
-  A<-sample(splist,size=row[[1]]
-            ,replace=F)
+  A<-sample(splist,size=row[[1]],replace=F)
   # Get species for Assemblage B
   B<-sample(splist,size=row[[2]],replace=F)
-  
+  assemb<-list(A,B)
+  names(assemb)<-c("A","B")
+
   #Format the data frame
+  assemblages<-melt(assemb)
+  assemblages<-as.data.frame.array(t(table(assemblages)))
+  return(assemblages)
 }
