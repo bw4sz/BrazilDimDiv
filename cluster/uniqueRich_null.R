@@ -75,7 +75,7 @@ rm(siteXspp)
 ident<-expand.grid(dt.unique$rich,dt.unique$rich)
 
 #Chunk the identity table based on the number of ranks
-IndexFunction<-splitIndices(nrow(ident),50)
+IndexFunction<-splitIndices(nrow(ident),comm.size())
 
 #Which rank am I?
 myIndexes<-IndexFunction[[.rank]]
@@ -166,8 +166,5 @@ ggplot(dat,aes(x=paste(RichnessA,"_",RichnessB),col=variable)) + geom_linerange(
 finalize()
 
 ###############################
-#Data Generation Complete
+#Null Generation Complete
 ###############################
-
-#now we run that pair 
-out<-beta_all(coph=coph,traitdist=traitdistance,sp.list.phylo = splist,sp.list.trait = sp.list.trait,ids=x)
