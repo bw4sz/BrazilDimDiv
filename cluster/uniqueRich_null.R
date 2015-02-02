@@ -8,7 +8,7 @@ comm.print(paste("Total nodes is:", comm.size()))
 #set rank
 .rank<-comm.rank()+1
 
-#library libraries
+#load libraries
 suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(library(picante,quietly=TRUE,warn.conflicts=FALSE))
 suppressMessages(library(ggplot2,quietly=TRUE,warn.conflicts=FALSE))
@@ -88,6 +88,7 @@ for (g in 1:100){
 }
 
 comm_df<-rbind.fill(outA)
+
 #Fill the absences to 0
 comm_df[is.na(comm_df)]<-0
 
