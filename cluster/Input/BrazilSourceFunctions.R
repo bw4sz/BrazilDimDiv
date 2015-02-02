@@ -101,7 +101,7 @@ betaPar.scatter<-function(toScatterIndex,coph,traitdist,sp.list.phylo,sp.list.tr
   #Within a chunk, loop through the indexes and compute betadiversity
   holder<-apply(toScatterIndex,2,function(x) {
     #get the comm row
-    out<-beta_all(coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait,ids=x)
+    out<-beta_all(coph=coph,traitdist=traitdist,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait,ids=x)
     return(out)
   })
   

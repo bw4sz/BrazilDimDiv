@@ -82,38 +82,67 @@ myIndexes<-IndexFunction[[.rank]]
 
 ##############Make replicates of your rank###############
 #For each row of null assemblages, make 100 samples
-outA<-list()
-for (g in 1:100){
-  outA[[g]]<-sampleS(myIndexes[1],ident)  
+
+#make a list
+nullIndex<-list()
+
+#number of replicates per assemblage type
+iter<-5
+
+#make a holder
+quantile_output<-list()
+
+#For each set of null assembles sample assemblage and run betascatter
+for (row in 1:length(myIndexes)){
+  
+  outA<-list()
+  for (g in 1:iter){
+    outA[[g]]<-sampleS(myIndexes[row],ident)  
+  }
+  
+  comm.df<-rbind.fill(outA)
+
+  #Fill the absences to 0
+  comm.df[is.na(comm.df)]<-0
+
+  #Calculate phylogenetic species lists
+  sp.list.phylo<-apply(comm.df,1,function(x){ 
+    names(x[which(x==1)])
+  })
+
+#remove any species for which we have no trait information
+  sp.list.trait<-apply(comm.df,1,function(x){ 
+    trait_sp<-names(x[which(x==1)])
+    trait_sp[trait_sp %in% colnames(traitdistance)]
+  })
+
+
+#Which rows to compare, we have randomly sampled, so just go in order, 
+Index_Space<-t(data.frame(To=seq(1,nrow(comm.df),2),From=seq(2,nrow(comm.df),2)))
+
+#needed be character names, not numbers
+names(sp.list.trait)<-as.character(1:length(sp.list.trait))
+names(sp.list.phylo)<-as.character(1:length(sp.list.phylo))
+
+beta_out<-betaPar.scatter(toScatterIndex = Index_Space,coph=coph,traitdist=traitdistance,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait)
+
+#get quantiles for each type
+quants<-as.data.frame(apply(beta_out[,-c(1,2)],2,function(x){
+  c(Lower=quantile(x,0.025),Upper=quantile(x,0.975))
+}))
+
+quants$Quantile<-c("Lower","Upper")
+rownames(quants)<-NULL
+
+#What richness type was this
+quants$RichnessA<-ident[myIndexes[row],1]
+quants$RichnessB<-ident[myIndexes[row],2]
+
+quantile_output[[row]]<-quants
 }
 
-comm_df<-rbind.fill(outA)
-
-#Fill the absences to 0
-comm_df[is.na(comm_df)]<-0
-
-#This would need to be done for every position in myIndexes, and they use betascatter to walk through the combinations,
-#I have to stop here for the moment.
-
-#Calculate phylogenetic species lists
-sp.list.phylo<-apply(comm.df[,!colnames(comm.df) %in% "id",with=F],1,function(x){ 
-  names(x[which(x==1)])
-})
-
-names(sp.list.phylo)<-comm.df$id
-
-col_keep<-colnames(comm.df)[colnames(comm.df) %in% colnames(traitm)]
-comm.df.trait<-comm.df[,c(col_keep,"id"),with=F]
-
-sp.list.trait<-apply(comm.df.trait[,!colnames(comm.df.trait) %in% "id",with=F],1,function(x){ 
-  names(x[which(x==1)])
-})
-
-names(sp.list.trait)<-comm.df$id
-
-system.time(beta_out<-betaPar.scatter(toScatterIndex = Index_Space,coph=cophm,traitdist=traitm,sp.list.phylo = sp.list.phylo,sp.list.trait = sp.list.trait))
-
-print(head(beta_out))
+#Bind all the outputs together
+quantile_all<-rbind.fill(quantile_output)
 
 #checkpoint, write data if fails
 save.image(paste("Beta/",.rank,"Randomization.RData",sep=""))
@@ -123,6 +152,13 @@ save.image(paste("Beta/",.rank,"Randomization.RData",sep=""))
 
 #try writing from all
 comm.write.table(beta_out,"Output/Randomization.txt",row.names=F,append=T,col.names = FALSE)
+
+
+#To delete, but if you want to visualize it do this
+dat<-melt(quantile_all,id.vars=c("RichnessA","RichnessB","Quantile"))
+dat<-dcast(dat,...~Quantile)
+
+ggplot(dat,aes(x=paste(RichnessA,"_",RichnessB),col=variable)) + geom_linerange(aes(ymin=Lower,ymax=Upper)) + labs(x="Richness") + facet_wrap(~variable,scale="free")
 
 #remove data file
 #file.remove(fil)
