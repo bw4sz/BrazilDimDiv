@@ -63,6 +63,9 @@ siteXspp<-siteXspp[rich>1]
 #Keep only original row (V1) and richness
 siteXrich<-siteXspp[,colnames(siteXspp) %in% c("V1","rich"),with=F]
 
+#Write siteXrich table (for later merge)
+write.table(siteXrich,"Input/siteXrich.txt",row.names=F)
+
 #remove duplicates
 dt.unique<-unique(siteXrich)
 
