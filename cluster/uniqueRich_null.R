@@ -106,15 +106,15 @@ for (row in 1:length(myIndexes)){
   comm.df[is.na(comm.df)]<-0
 
   #Calculate phylogenetic species lists
-  sp.list.phylo<-apply(comm.df,1,function(x){ 
+  sp.list.phylo<-as.list(apply(comm.df,1,function(x){ 
     names(x[which(x==1)])
-  })
+  }))
 
 #remove any species for which we have no trait information
-  sp.list.trait<-apply(comm.df,1,function(x){ 
+  sp.list.trait<-as.list(apply(comm.df,1,function(x){ 
     trait_sp<-names(x[which(x==1)])
     trait_sp[trait_sp %in% colnames(traitdistance)]
-  })
+  }))
 
 
 #Which rows to compare, we have randomly sampled, so just go in order, 
@@ -128,7 +128,7 @@ beta_out<-betaPar.scatter(toScatterIndex = Index_Space,coph=coph,traitdist=trait
 
 #get quantiles for each type
 quants<-as.data.frame(apply(beta_out[,-c(1,2)],2,function(x){
-  c(Lower=quantile(x,0.025),Upper=quantile(x,0.975))
+  c(Lower=quantile(x,0.025,na.rm=T),Upper=quantile(x,0.975,na.rm=T))
 }))
 
 quants$Quantile<-c("Lower","Upper")
@@ -151,7 +151,7 @@ save.image(paste("Beta/",.rank,"Randomization.RData",sep=""))
 #print(timeF)
 
 #try writing from all
-comm.write.table(beta_out,"Output/Randomization.txt",row.names=F,append=T,col.names = FALSE)
+comm.write.table(quantile_all,"Output/Randomization.txt")
 
 
 #To delete, but if you want to visualize it do this
