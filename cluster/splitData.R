@@ -4,20 +4,20 @@
 
 ##################
 
-library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=F)
+suppressWarnings(suppressMessages(library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)))
 
 init()
 
 if(comm.rank()==0){
 #Require libraries, i hate the messages
-suppressMessages(require(reshape,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(require(picante,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(require(ggplot2,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(require(parallel,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(require(foreach,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(require(GGally,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(require(data.table,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(require(betapart,quietly=TRUE,warn.conflicts=FALSE))
+suppressWarnings(suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(picante,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(ggplot2,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(parallel,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(foreach,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(GGally,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(data.table,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(betapart,quietly=TRUE,warn.conflicts=FALSE)))
 
 #Everyone say hello
 #comm.print(comm.rank(), all.rank = TRUE)

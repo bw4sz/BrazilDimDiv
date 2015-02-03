@@ -1,4 +1,4 @@
-library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)
+suppressWarnings(suppressMessages(library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)))
 
 init()
 
@@ -9,15 +9,15 @@ comm.print(paste("Total nodes is:", comm.size()))
 .rank<-comm.rank()+1
 
 #load libraries
-suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(picante,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(ggplot2,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(parallel,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(foreach,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(GGally,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(data.table,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(betapart,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(plyr,quietly=TRUE,warn.conflicts=FALSE))
+suppressWarnings(suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(picante,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(ggplot2,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(parallel,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(foreach,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(GGally,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(data.table,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(betapart,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(plyr,quietly=TRUE,warn.conflicts=FALSE)))
 
 #Everyone say hello
 comm.print(comm.rank(), all.rank = TRUE)
@@ -33,16 +33,16 @@ suppressMessages(source("Input/BrazilSourceFunctions.R"))
 ###Read in data
 
 #Bring in relatedness matrix
-coph<-fread("Input/cophenetic.csv")
+coph<-fread("Input/cophenetic.csv",showProgress=F)
 setkey(coph,V1)
 setcolorder(coph,c("V1",coph$V1))
 
 #bring in trait distance matrix
-traitdistance<-fread("Input/traitdistanceLog.csv")
+traitdistance<-fread("Input/traitdistanceLog.csv",showProgress=F)
 setkey(traitdistance,V1)
 
 ##Read siteXspp table
-siteXspp <- fread("Input/siteXspp1dgr.csv")
+siteXspp <- fread("Input/siteXspp1dgr.csv",showProgress=F)
 
 #make first identification rowname
 siteXspp[,V1:=1:nrow(siteXspp)]

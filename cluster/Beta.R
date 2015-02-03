@@ -10,7 +10,7 @@ print(position_start)
 class(position_start)
 position_start<-as.numeric(position_start)
 
-library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)
+suppressWarnings(suppressMessages(library(pbdMPI,quietly=TRUE,warn.conflicts=FALSE,verbose=FALSE)))
 
 init()
 
@@ -18,15 +18,15 @@ init()
 
 
 #library libraries
-suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(picante,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(ggplot2,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(parallel,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(foreach,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(GGally,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(data.table,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(betapart,quietly=TRUE,warn.conflicts=FALSE))
-suppressMessages(library(plyr,quietly=TRUE,warn.conflicts=FALSE))
+suppressWarnings(suppressMessages(library(reshape2,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(picante,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(ggplot2,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(parallel,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(foreach,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(GGally,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(data.table,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(betapart,quietly=TRUE,warn.conflicts=FALSE)))
+suppressWarnings(suppressMessages(library(plyr,quietly=TRUE,warn.conflicts=FALSE)))
 
 #Everyone say hello
 comm.print(comm.rank(), all.rank = TRUE)
